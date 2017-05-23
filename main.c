@@ -8,23 +8,22 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Máximo de bytes para uma String
-#define BUFFER 64
+#define SIZE 50
 
 // Estrutura animais
 typedef struct animals {
-  char *name;
-  char *species;
-  char *location;
-  char *family;
+  char name[SIZE];
+  char species[SIZE];
+  char location[SIZE];
+  char family[SIZE];
   float weight;
   struct animals *prox;
 } list_animals;
 
 // Estrutura areas
 typedef struct areas {
-  char *identifier;
-  char *adjacent_areas;
+  char identifier[SIZE];
+  char adjacent_areas[SIZE];
   int nr_adjacent_areas;
   float capacity;
   struct areas *prox;
@@ -103,16 +102,12 @@ void PressEnterToContinue(void) {
 // Função para carregar dados
 void load_animals_data(void) {
   char line[256];
-  char *species, *name, *location;
+  char species[SIZE], name[SIZE], location[SIZE];
   float weight;
 
   FILE *file;
   file = fopen("animals.dat", "rb");
 
-  // Resevar espaço para as strings
-  name = (char *)malloc(BUFFER);
-  species = (char *)malloc(BUFFER);
-  location = (char *)malloc(BUFFER);
 
   // Verificar se é possivel abrir o ficheiro
   if (file == NULL) {
@@ -207,16 +202,12 @@ void save_areas_data(list_areas *data) {
 
 void load_areas_data(void) {
   char line[256];
-  char *identifier, *adjacent_areas;
+  char identifier[SIZE], adjacent_areas[SIZE];
   float capacity;
   int nr_adjacent_areas;
 
   FILE *file;
   file = fopen("areas.txt", "r");
-
-  // Resevar espaço para as strings
-  identifier = (char *)malloc(BUFFER);
-  adjacent_areas = (char *)malloc(BUFFER);
 
   // Verificar se é possivel abrir o ficheiro
   if (file == NULL) {
@@ -253,11 +244,9 @@ list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
   // Alocar memória para a posição atual
   start_areas = (list_areas *)malloc(sizeof(list_areas));
   // Copiar os dados recebidos para a estrutura
-  start_areas->identifier = (char *)malloc(strlen(identifier) + 1);
   strncpy(start_areas->identifier, identifier, strlen(identifier) + 1);
   start_areas->capacity = capacity;
   start_areas->nr_adjacent_areas = nr_adjacent_areas;
-  start_areas->adjacent_areas = (char *)malloc(strlen(adjacent_areas) + 1);
   strncpy(start_areas->adjacent_areas, adjacent_areas,
           strlen(adjacent_areas) + 1);
 
@@ -277,15 +266,13 @@ list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
 
 // Função para definir a area a apagar
 void delete_area(list_animals *animals_data) {
-  char *key;
+  char key[SIZE];
   int found = 0;
   clearScreen();
   header();
 
-  key = (char *)malloc(BUFFER);
-
   printf("\n\tDigite o nome da area a remover : ");
-  scanf(" %s", key);
+  scanf(" %49[^\n]", key);
   for (; animals_data != NULL; animals_data = animals_data->prox) {
     if (strcmp(key, animals_data->location) == 0) {
       printf("\n\tNome = %s\n", animals_data->name);
@@ -357,19 +344,15 @@ list_areas *delete_area_data(list_areas *data, char *key) {
 
 // Função para criar uma nova área
 void create_area(void) {
-  char *identifier, *adjacent_areas;
+  char identifier[SIZE], adjacent_areas[SIZE];
   int nr_adjacent_areas = 0, x;
   float capacity;
-
-  // Reservar espaço para as Strings
-  identifier = (char *)malloc(BUFFER);
-  adjacent_areas = (char *)malloc(BUFFER);
 
   clearScreen();
   header();
 
   printf("\n\tDigite o identificador da area : ");
-  scanf("%s", identifier);
+  scanf(" %49[^\n]", identifier);
   printf("\n\tDigite a capacidade da area : ");
   scanf("%f", &capacity);
   do {
@@ -378,7 +361,7 @@ void create_area(void) {
   } while (nr_adjacent_areas < 0 || nr_adjacent_areas > 3);
   for (x = 0; x < nr_adjacent_areas; x++) {
     printf("\n\tDigite a area adjacente %d : ", x + 1);
-    scanf("%s", adjacent_areas);
+    scanf(" %49[^\n]", adjacent_areas);
   }
 
   // Enviar dados recebidos para a função que copia os dados para a Estrutura
@@ -433,15 +416,10 @@ menu:
 // Função para carregar animais a partir de um ficheiro de texto
 void load_animals(void) {
   char fileName[20], line[256];
-  char *species, *name, *location;
+  char species[SIZE], name[SIZE], location[SIZE];
   float weight;
 
   FILE *file;
-
-  // Resevar espaço para as strings
-  name = (char *)malloc(BUFFER);
-  species = (char *)malloc(BUFFER);
-  location = (char *)malloc(BUFFER);
 
   clearScreen();
   header();
@@ -510,25 +488,20 @@ bool check_empty(FILE *file) {
 
 // Inserir animal (Função que recebe os dados do animal)
 void born_animal(void) {
-  char *name, *species, *location;
+  char name[SIZE], species[SIZE], location[SIZE];
   float weight;
-
-  // Reservar espaço para String
-  name = (char *)malloc(BUFFER);
-  species = (char *)malloc(BUFFER);
-  location = (char *)malloc(BUFFER);
 
   clearScreen();
   header();
 
   printf("\n\tDigite a especie : ");
-  scanf("%s", species);
+  scanf(" %49[^\n]", species);
   printf("\n\tDigite o nome : ");
-  scanf("%s", name);
+  scanf(" %49[^\n]", name);
   printf("\n\tDigite o peso : ");
   scanf("%f", &weight);
   printf("\n\tDigite a localizacao : ");
-  scanf("%s", location);
+  scanf(" %49[^\n]", location);
 
   // Enviar dados recebidos para a função que copia os dados para a Estrutura
   start_animals =
@@ -546,12 +519,9 @@ list_animals *insert_animal_data(list_animals *data, char *species, char *name,
   // Alocar memória para a posição atual
   start_animals = (list_animals *)malloc(sizeof(list_animals));
   // Copiar os dados recebidos para a estrutura
-  start_animals->species = (char *)malloc(strlen(species) + 1);
   strncpy(start_animals->species, species, strlen(species) + 1);
-  start_animals->name = (char *)malloc(strlen(name) + 1);
   strncpy(start_animals->name, name, strlen(name) + 1);
   start_animals->weight = weight;
-  start_animals->location = (char *)malloc(strlen(location) + 1);
   strncpy(start_animals->location, location, strlen(location) + 1);
 
   // Se os dados forem inseridos no inicio do programa aponta para a
@@ -613,14 +583,13 @@ int verify_list_areas(list_areas *data) {
 
 // Função que recebe o nome do animal a remover
 void delete_animal(void) {
-  char *key;
+  char key[SIZE];
   // Se não estiver vazio
   if (!verify_list_animals(start_animals)) {
-    key = (char *)malloc(BUFFER);
     clearScreen();
     header();
     printf("\n\tDigite o nome do animal a remover : ");
-    scanf(" %s", key);
+    scanf(" %49[^\n]", key);
     start_animals = delete_animal_data(start_animals, key);
   }
 }
@@ -738,15 +707,14 @@ void search_animals_data(list_animals *data, char *key, int filter) {
 
 // Função que recebe o termo a procurar
 void search_animals(int filter) {
-  char *key;
+  char key[SIZE];
   // Se a lista não estiver vazia
   if (!verify_list_animals(start_animals)) {
-    key = (char *)malloc(BUFFER);
     clearScreen();
     header();
     // Ler a chave a procurar
     printf("\n\tDigite a procura : ");
-    scanf("%s", key);
+    scanf(" %49[^\n]", key);
     // chamando a função que irá procurar a chave
     search_animals_data(start_animals, key, filter);
   }
