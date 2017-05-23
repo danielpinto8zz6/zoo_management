@@ -3,6 +3,7 @@
 * Author: daniel
 */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +35,10 @@ void header(void);
 void clearScreen(void);
 void clear_newlines(void);
 void PressEnterToContinue(void);
+void load_animals_data(void);
+void save_animals_data(list_animals *data);
+void save_areas_data(list_areas *data);
+void load_areas_data(void);
 list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
                              int nr_adjacent_areas, char *adjacent_areas);
 void delete_area(list_animals *animals_data);
@@ -41,6 +46,7 @@ list_areas *delete_area_data(list_areas *data, char *key);
 void create_area(void);
 void menu_areas(void);
 void load_animals(void);
+bool check_empty(FILE *file);
 void born_animal(void);
 list_animals *insert_animal_data(list_animals *data, char *species, char *name,
                                  float weight, char *location);
@@ -92,6 +98,152 @@ void PressEnterToContinue(void) {
   clear_newlines();
   while (getchar() != '\n')
     ;
+}
+
+// Função para carregar dados
+void load_animals_data(void) {
+  char line[256];
+  char *species, *name, *location;
+  float weight;
+
+  FILE *file;
+  file = fopen("animals.dat", "rb");
+
+  // Resevar espaço para as strings
+  name = (char *)malloc(BUFFER);
+  species = (char *)malloc(BUFFER);
+  location = (char *)malloc(BUFFER);
+
+  // Verificar se é possivel abrir o ficheiro
+  if (file == NULL) {
+    clearScreen();
+    header();
+    printf("\n\tNao foi possivel carregar dados dos animais do zoo!\n\n");
+    PressEnterToContinue();
+    return;
+    // Assumir que o zoo ainda não tem animais
+  } else {
+    // Ler o ficheiro linha por linha
+    while (fgets(line, sizeof(line), file)) {
+      // Em cada linha retirar a seguinte informação e enviar para a função que
+      // insere os dados na estrutura
+      sscanf(line, "%s %s %f %s", species, name, &weight, location);
+      // Não esquecer de implementar condições para o programa apenas aceitar o
+      // registo se não ultrapassar a capacidade do local ou se a area não
+      // existir
+
+      // Enviar dados recebidos para a função que copia os dados para a
+      // Estrutura
+      start_animals =
+          insert_animal_data(start_animals, species, name, weight, location);
+    }
+  }
+
+  fclose(file);
+}
+
+void save_animals_data(list_animals *data) {
+
+  FILE *file;
+  file = fopen("animals.dat", "wb");
+  // Verificar se é possivel abrir o ficheiro
+  if (file == NULL) {
+    clearScreen();
+    header();
+    printf("\n\tNao foi possivel guardar dados de animais\n\n");
+    PressEnterToContinue();
+    exit(0);
+  } else {
+    // Antes de guardar os dados vamos limpar o ficheiro para os mesmo dados nao
+    // serem inseridos duas vezes
+    for (; data != NULL; data = data->prox) {
+      fprintf(file, "%s %s %.2f %s\n", data->species, data->name, data->weight,
+              data->location);
+    }
+  }
+  fclose(file);
+}
+
+// // Função para ver áreas (não usada no programa, apenas para testes)
+void show_areas(list_areas *data) {
+  // Se não estiver vazio, mostra os dados
+  if (!verify_list_areas(start_areas)) {
+    clearScreen();
+    header();
+    for (; data != NULL; data = data->prox) {
+      printf("\n\tIdentificador = %s\n", data->identifier);
+      printf("\n\tCapacidade = %f\n", data->capacity);
+      printf("\n\tNumero de areas adjacentes = %d\n", data->nr_adjacent_areas);
+      printf("\n\tAreas adjacentes = %s\n", data->adjacent_areas);
+      printf("\n\t-----------------\n");
+    }
+    printf("\n");
+    PressEnterToContinue();
+  }
+  return;
+}
+
+void save_areas_data(list_areas *data) {
+
+  FILE *file;
+  file = fopen("areas.txt", "w");
+  // Verificar se é possivel abrir o ficheiro
+  if (file == NULL) {
+    clearScreen();
+    header();
+    printf("\n\tNao foi possivel guardar dados de areas de zoo!\n\n");
+    PressEnterToContinue();
+    exit(0);
+  } else {
+    // Antes de guardar os dados vamos limpar o ficheiro para os mesmo dados nao
+    // serem inseridos duas vezes
+    for (; data != NULL; data = data->prox) {
+      fprintf(file, "%s %.2f %d %s\n", data->identifier, data->capacity,
+              data->nr_adjacent_areas, data->adjacent_areas);
+    }
+  }
+  fclose(file);
+}
+
+void load_areas_data(void) {
+  char line[256];
+  char *identifier, *adjacent_areas;
+  float capacity;
+  int nr_adjacent_areas;
+
+  FILE *file;
+  file = fopen("areas.txt", "r");
+
+  // Resevar espaço para as strings
+  identifier = (char *)malloc(BUFFER);
+  adjacent_areas = (char *)malloc(BUFFER);
+
+  // Verificar se é possivel abrir o ficheiro
+  if (file == NULL) {
+    clearScreen();
+    header();
+    printf("\n\tNao foi possivel carregar dados das areas do zoo!\n\n");
+    PressEnterToContinue();
+    return;
+  } else {
+    // Ler o ficheiro linha por linha
+    while (fgets(line, sizeof(line), file)) {
+      // Em cada linha retirar a seguinte informação e enviar para a função que
+      // insere os dados na estrutura
+      sscanf(line, "%s %f %d %s", identifier, &capacity, &nr_adjacent_areas,
+             adjacent_areas);
+      // Não esquecer de implementar condições para o programa apenas aceitar o
+      // registo se não ultrapassar a capacidade do local ou se a area não
+      // existir
+
+      // Enviar dados recebidos para a função que copia os dados para a
+      // Estrutura
+      start_areas = insert_area_data(start_areas, identifier, capacity,
+                                     nr_adjacent_areas, adjacent_areas);
+    }
+  }
+
+  fclose(file);
 }
 
 // Função que insere os dados recebidos na estrutura de dados
@@ -206,7 +358,7 @@ list_areas *delete_area_data(list_areas *data, char *key) {
 // Função para criar uma nova área
 void create_area(void) {
   char *identifier, *adjacent_areas;
-  int nr_adjacent_areas = 0;
+  int nr_adjacent_areas = 0, x;
   float capacity;
 
   // Reservar espaço para as Strings
@@ -220,12 +372,14 @@ void create_area(void) {
   scanf("%s", identifier);
   printf("\n\tDigite a capacidade da area : ");
   scanf("%f", &capacity);
-  while (nr_adjacent_areas < 0 || nr_adjacent_areas > 3) {
+  do {
     printf("\n\tDigite o numero de areas adjacentes [max : 3] : ");
     scanf("%d", &nr_adjacent_areas);
+  } while (nr_adjacent_areas < 0 || nr_adjacent_areas > 3);
+  for (x = 0; x < nr_adjacent_areas; x++) {
+    printf("\n\tDigite a area adjacente %d : ", x + 1);
+    scanf("%s", adjacent_areas);
   }
-  printf("\n\tDigite a area adjacente %d : ", nr_adjacent_areas);
-  scanf("%s", adjacent_areas);
 
   // Enviar dados recebidos para a função que copia os dados para a Estrutura
   start_areas = insert_area_data(start_areas, identifier, capacity,
@@ -244,6 +398,7 @@ menu:
 
   printf("\n\t# 1 - Criar uma nova area");
   printf("\n\t# 2 - Eliminar uma area existente");
+  printf("\n\t# 3 - Ver areas do zoo");
   printf("\n\t# 0 - Voltar ao menu principal\n\n");
 
   printf("\t### : ");
@@ -258,8 +413,13 @@ menu:
     clearScreen();
     delete_area(start_animals);
     break;
+  case 3:
+    clearScreen();
+    show_areas(start_areas);
+    break;
   case 0:
     clearScreen();
+    main();
     break;
   default:
     printf("\n\t# Opcao invalida\n");
@@ -272,61 +432,80 @@ menu:
 
 // Função para carregar animais a partir de um ficheiro de texto
 void load_animals(void) {
-  FILE *file;
   char fileName[20], line[256];
   char *species, *name, *location;
   float weight;
 
-  clearScreen();
-  header();
-  printf(
-      "\n\t* Para carregar  = 20animais atraves de um ficheiro de texto deve\n "
-      "\tinserir 1 animal por linha com a seguinte sintaxe :\n\n"
-      "\t\tEspecie Nome Localizacao Peso\n");
-  printf("\n\tDigite o nome do ficheiro a carregar : ");
-  scanf("%s", fileName);
-
-  // Verificar se é possivel abrir o ficheiro
-  if ((file = fopen(fileName, "r")) == NULL) {
-    clearScreen();
-    header();
-    printf("\n\tErro ao carregar ficheiro, verifica se o mesmo existe e se "
-           "encontra no diretorio do programa!\n\n");
-    PressEnterToContinue();
-    return;
-  }
-
-  fseek(file, 0, SEEK_END); // ir ate ao fim do ficheiro
-  if (ftell(file) == 0) {
-    clearScreen();
-    header();
-    printf("\n\tO ficheiro esta vazio, nada a carregar!\n\n");
-    PressEnterToContinue();
-    return;
-  }
-  fseek(file, 0, SEEK_SET); // ir ate ao inicio do ficheiro
+  FILE *file;
 
   // Resevar espaço para as strings
   name = (char *)malloc(BUFFER);
   species = (char *)malloc(BUFFER);
   location = (char *)malloc(BUFFER);
 
-  // Ler o ficheiro linha por linha
-  while (fgets(line, sizeof(line), file)) {
-    // Em cada linha retirar a seguinte informação e enviar para a função que
-    // insere os dados na estrutura
-    sscanf(line, "%s %s %f %s", species, name, &weight, location);
-    // Não esquecer de implementar condições para o programa apenas aceitar o
-    // registo se não ultrapassar a capacidade do local ou se a area não existir
+  clearScreen();
+  header();
+  printf("\n\t* Para carregar  = 20animais atraves de um ficheiro de texto "
+         "deve\n "
+         "\tinserir 1 animal por linha com a seguinte sintaxe :\n\n"
+         "\t\tEspecie Nome Localizacao Peso\n");
+  printf("\n\tDigite o nome do ficheiro a carregar : ");
+  scanf("%s", fileName);
 
-    // Enviar dados recebidos para a função que copia os dados para a Estrutura
-    start_animals =
-        insert_animal_data(start_animals, species, name, weight, location);
+  file = fopen(fileName, "r");
+
+  // Verificar se é possivel abrir o ficheiro
+  if (file == NULL) {
+    clearScreen();
+    header();
+    printf("\n\tErro ao carregar ficheiro, verifica se o mesmo existe e se\n"
+           "\tencontra no diretorio do programa!\n\n");
+    PressEnterToContinue();
+    return;
+  } else {
+
+    if (check_empty(file) == true) {
+      clearScreen();
+      header();
+      printf("\n\tO ficheiro esta vazio, nada a carregar!\n\n");
+      PressEnterToContinue();
+      return;
+    } else {
+      // Ler o ficheiro linha por linha
+      while (fgets(line, sizeof(line), file)) {
+        // Em cada linha retirar a seguinte informação e enviar para a função
+        // que
+        // insere os dados na estrutura
+        sscanf(line, "%s %s %f %s", species, name, &weight, location);
+        // Não esquecer de implementar condições para o programa apenas aceitar
+        // o
+        // registo se não ultrapassar a capacidade do local ou se a area não
+        // existir
+
+        // Enviar dados recebidos para a função que copia os dados para a
+        // Estrutura
+        start_animals =
+            insert_animal_data(start_animals, species, name, weight, location);
+      }
+    }
   }
 
   fclose(file);
   printf("\n\tDados carregados com sucesso!\n\n");
   PressEnterToContinue();
+}
+
+// Verificar se o ficheiro está vazio
+bool check_empty(FILE *file) {
+  long savedOffset = ftell(file);
+  fseek(file, 0, SEEK_END);
+
+  if (ftell(file) == 0) {
+    return true;
+  }
+
+  fseek(file, savedOffset, SEEK_SET);
+  return false;
 }
 
 // Inserir animal (Função que recebe os dados do animal)
@@ -451,7 +630,8 @@ list_animals *delete_animal_data(list_animals *data, char *key) {
   int find = 0, cont = 0;
   list_animals *join, *aux, *fresh = data;
 
-  // Correr a lista e verificar se encontra a string procurada, se sim, aumentar
+  // Correr a lista e verificar se encontra a string procurada, se sim,
+  // aumentar
   // o contador e setar a variável de procura
   for (; fresh != NULL; fresh = fresh->prox) {
     if (strcmp(key, fresh->name) == 0) {
@@ -583,11 +763,11 @@ menu:
 
   header();
 
-  printf("\n\t# list_animalsagem de Informacao");
-  printf("\n\t -> 1 - list_animalsar todos os animais do Zoo");
-  printf("\n\t -> 2 - list_animalsar animais por localização");
-  printf("\n\t -> 3 - list_animalsar animais por species");
-  printf("\n\t -> 4 - list_animalsar um determinado animal");
+  printf("\n\t# Listagem de Informacao");
+  printf("\n\t -> 1 - Listar todos os animais do Zoo");
+  printf("\n\t -> 2 - Listar animais por localização");
+  printf("\n\t -> 3 - Listar animais por species");
+  printf("\n\t -> 4 - Listar um determinado animal");
   printf("\n\t# 5 - Eliminar animal");
   printf("\n\t# 6 - Transferir animal");
   printf("\n\t# 7 - Nascimento de um animal");
@@ -646,8 +826,17 @@ menu:
 int main() {
   int op;
 
+  static bool _isExecutedFirst = false;
+
+  if (!_isExecutedFirst) {
+    _isExecutedFirst = true;
+    load_animals_data();
+    load_areas_data();
+  }
+
 menu:
 
+  clearScreen();
   header();
 
   printf("\n\t# 1 - Areas de Zoo");
@@ -668,6 +857,8 @@ menu:
     break;
   case 0:
     clearScreen();
+    save_animals_data(start_animals);
+    save_areas_data(start_areas);
     exit(0);
     break;
   default:
