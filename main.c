@@ -9,6 +9,7 @@
 #include <string.h>
 
 #define SIZE 50
+#define INCOMPATIBILITY false;
 
 // Estrutura animais
 typedef struct animals {
@@ -34,7 +35,7 @@ void header(void);
 void clearScreen(void);
 void clear_newlines(void);
 void PressEnterToContinue(void);
-void load_animals_data(void);
+void load_animals_data(list_areas *data);
 void save_animals_data(list_animals *data);
 void save_areas_data(list_areas *data);
 void load_areas_data(void);
@@ -44,11 +45,12 @@ void delete_area(list_animals *animals_data);
 list_areas *delete_area_data(list_areas *data, char *key);
 void create_area(void);
 void menu_areas(void);
-void load_animals(void);
+void load_animals(list_areas *data);
 bool check_empty(FILE *file);
 void born_animal(void);
-list_animals *insert_animal_data(list_animals *data, char *species, char *name,
-                                 float weight, char *location);
+list_animals *insert_animal_data(list_animals *data, char species[SIZE],
+                                 char name[SIZE], float weight,
+                                 char location[SIZE]);
 void show_animals(list_animals *data);
 int verify_list_animals(list_animals *data);
 int verify_list_areas(list_areas *data);
@@ -99,15 +101,57 @@ void PressEnterToContinue(void) {
     ;
 }
 
+void transfer_animal_data(list_animals *data, char *key, char *area) {
+  int find = 0;
+
+  // Quando encontrar o animal a transferir terminar o ciclo e efetuar a
+  // transferência
+  for (; data != NULL; data = data->prox) {
+    if (strcmp(key, data->name) == 0) {
+      find = 1;
+      strncpy(data->location, area, strlen(area) + 1);
+      break;
+    }
+  }
+
+  // Se encontrou a procura
+  if (find == 1) {
+    printf("\n\tTransferido!\n\n");
+    PressEnterToContinue();
+  } else {
+    printf("\n\tNenhum resultado encontrado!\n\n");
+    PressEnterToContinue();
+  }
+
+  return;
+}
+
+void transfer_animal() {
+  char key[SIZE], area[SIZE];
+
+  // Se a lista não estiver vazia
+  if (!verify_list_animals(start_animals)) {
+    clearScreen();
+    header();
+    // Ler a chave a procurar
+    printf("\n\tInsira o nome do animal a transferir : ");
+    scanf(" %49[^\n]", key);
+    printf("\n\tInsira a area para qual o deseja transferir : ");
+    scanf(" %49[^\n]", area);
+    // chamando a função que irá procurar a chave
+    transfer_animal_data(start_animals, key, area);
+  }
+}
+
 // Função para carregar dados
-void load_animals_data(void) {
+void load_animals_data(list_areas *data) {
   char line[256];
   char species[SIZE], name[SIZE], location[SIZE];
   float weight;
+  int found = 0;
 
   FILE *file;
   file = fopen("animals.dat", "rb");
-
 
   // Verificar se é possivel abrir o ficheiro
   if (file == NULL) {
@@ -123,14 +167,21 @@ void load_animals_data(void) {
       // Em cada linha retirar a seguinte informação e enviar para a função que
       // insere os dados na estrutura
       sscanf(line, "%s %s %f %s", species, name, &weight, location);
-      // Não esquecer de implementar condições para o programa apenas aceitar o
-      // registo se não ultrapassar a capacidade do local ou se a area não
-      // existir
+      // Apenas aceitar o registo se não ultrapassar a capacidade do local ou se
+      // a area não existir
 
-      // Enviar dados recebidos para a função que copia os dados para a
-      // Estrutura
-      start_animals =
-          insert_animal_data(start_animals, species, name, weight, location);
+      for (; data != NULL; data = data->prox) {
+        if (strcmp(location, data->identifier) == 0) {
+          found++;
+        }
+      }
+      // Se o animal não estiver numa área valida será ignorado
+      if (found != 0) {
+        // Enviar dados recebidos para a função que copia os dados para
+        // a estrutura
+        start_animals =
+            insert_animal_data(start_animals, species, name, weight, location);
+      }
     }
   }
 
@@ -233,7 +284,6 @@ void load_areas_data(void) {
                                      nr_adjacent_areas, adjacent_areas);
     }
   }
-
   fclose(file);
 }
 
@@ -414,10 +464,11 @@ menu:
 }
 
 // Função para carregar animais a partir de um ficheiro de texto
-void load_animals(void) {
+void load_animals(list_areas *data) {
   char fileName[20], line[256];
   char species[SIZE], name[SIZE], location[SIZE];
   float weight;
+  int found = 0, x = 0;
 
   FILE *file;
 
@@ -462,15 +513,34 @@ void load_animals(void) {
 
         // Enviar dados recebidos para a função que copia os dados para a
         // Estrutura
-        start_animals =
-            insert_animal_data(start_animals, species, name, weight, location);
+        for (; data != NULL; data = data->prox) {
+          if (strcmp(location, data->identifier) == 0) {
+            found++;
+          }
+        }
+        // Se o animal tiver uma area valida os dados serão registados
+        if (found == 0) {
+          x++;
+        } else { // Enviar dados recebidos para a função que copia os dados para
+                 // a
+          // Estrutura
+          start_animals = insert_animal_data(start_animals, species, name,
+                                             weight, location);
+        }
       }
     }
   }
 
   fclose(file);
-  printf("\n\tDados carregados com sucesso!\n\n");
-  PressEnterToContinue();
+  if (found == 0) {
+    printf("\n\tForam ignorados %d animais por nao se encontrarem numa "
+           "area valida\n\n",
+           x);
+    PressEnterToContinue();
+  } else {
+    printf("\n\tDados carregados com sucesso!\n\n");
+    PressEnterToContinue();
+  }
 }
 
 // Verificar se o ficheiro está vazio
@@ -513,8 +583,9 @@ void born_animal(void) {
 }
 
 // Inserir dados recebidos
-list_animals *insert_animal_data(list_animals *data, char *species, char *name,
-                                 float weight, char *location) {
+list_animals *insert_animal_data(list_animals *data, char species[SIZE],
+                                 char name[SIZE], float weight,
+                                 char location[SIZE]) {
   list_animals *start_animals;
   // Alocar memória para a posição atual
   start_animals = (list_animals *)malloc(sizeof(list_animals));
@@ -769,13 +840,14 @@ menu:
     break;
   case 6:
     clearScreen();
+    transfer_animal();
     break;
   case 7:
     clearScreen();
     born_animal();
   case 8:
     clearScreen();
-    load_animals();
+    load_animals(start_areas);
     break;
   case 0:
     clearScreen();
@@ -798,7 +870,7 @@ int main() {
 
   if (!_isExecutedFirst) {
     _isExecutedFirst = true;
-    load_animals_data();
+    load_animals_data(start_areas);
     load_areas_data();
   }
 
