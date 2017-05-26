@@ -59,6 +59,9 @@ list_animals *delete_animal_data(list_animals *data, char *key);
 void search_animals_data(list_animals *data, char *key, int filter);
 void search_animals(int filter);
 void menu_animals(void);
+
+void save_list_into(list_animals *data, FILE *file);
+
 int main(void);
 
 // Iniciar os dados das listas
@@ -169,6 +172,7 @@ void load_animals_data(list_areas *data) {
 
       // for loop to check if is an existing area
       for (; aux != NULL; aux = aux->prox) {
+        // Se o animal não estiver numa área valida será ignorado
 
         if (strcmp(load.location, aux->identifier) == 0) {
           start_animals =
@@ -178,6 +182,7 @@ void load_animals_data(list_areas *data) {
       }
     }
   }
+
   fclose(file);
 }
 
@@ -195,11 +200,23 @@ void save_animals_data(list_animals *data) {
   } else {
     // Antes de guardar os dados vamos limpar o ficheiro para os mesmo dados nao
     // serem inseridos duas vezes
+    save_list_into(data, file);
+    /*
     for (; data != NULL; data = data->prox) {
-      fwrite(data, sizeof(list_animals), 1, file);
-    }
+  fwrite(data, sizeof(list_animals), 1, file);
+}
+*/
   }
   fclose(file);
+}
+
+void save_list_into(list_animals *data, FILE *file) {
+  if (data == NULL)
+    return;
+  else
+    save_list_into(data->prox, file);
+  fwrite(data, sizeof(list_animals), 1, file);
+  return;
 }
 
 // // Função para ver áreas (não usada no programa, apenas para testes)
@@ -862,8 +879,6 @@ int main() {
 
   if (!_isExecutedFirst) {
     _isExecutedFirst = true;
-    // here is an mistake
-    // load_areas_data goes first
     load_areas_data();
     load_animals_data(start_areas);
   }
