@@ -145,10 +145,9 @@ void transfer_animal() {
 
 // Função para carregar dados
 void load_animals_data(list_areas *data) {
-  char line[256];
-  char species[SIZE], name[SIZE], location[SIZE];
-  float weight;
-  int found = 0;
+
+  // uma variável list_amimal para armazenar os dados lidos
+  list_animals load;
 
   FILE *file;
   file = fopen("animals.dat", "rb");
@@ -162,29 +161,23 @@ void load_animals_data(list_areas *data) {
     return;
     // Assumir que o zoo ainda não tem animais
   } else {
-    // Ler o ficheiro linha por linha
-    while (fgets(line, sizeof(line), file)) {
-      // Em cada linha retirar a seguinte informação e enviar para a função que
-      // insere os dados na estrutura
-      sscanf(line, "%s %s %f %s", species, name, &weight, location);
-      // Apenas aceitar o registo se não ultrapassar a capacidade do local ou se
-      // a area não existir
+    // Os dados são armazenados directamente na variável espécie
+    while (fread(&load, sizeof(list_animals), 1, file)) {
+      // reset the values
+      // aux is a pointer aux that become to the start
+      list_areas *aux = data;
 
-      for (; data != NULL; data = data->prox) {
-        if (strcmp(location, data->identifier) == 0) {
-          found++;
+      // for loop to check if is an existing area
+      for (; aux != NULL; aux = aux->prox) {
+
+        if (strcmp(load.location, aux->identifier) == 0) {
+          start_animals =
+              insert_animal_data(start_animals, load.species, load.name,
+                                 load.weight, load.location);
         }
-      }
-      // Se o animal não estiver numa área valida será ignorado
-      if (found != 0) {
-        // Enviar dados recebidos para a função que copia os dados para
-        // a estrutura
-        start_animals =
-            insert_animal_data(start_animals, species, name, weight, location);
       }
     }
   }
-
   fclose(file);
 }
 
@@ -203,8 +196,7 @@ void save_animals_data(list_animals *data) {
     // Antes de guardar os dados vamos limpar o ficheiro para os mesmo dados nao
     // serem inseridos duas vezes
     for (; data != NULL; data = data->prox) {
-      fprintf(file, "%s %s %.2f %s\n", data->species, data->name, data->weight,
-              data->location);
+      fwrite(data, sizeof(list_animals), 1, file);
     }
   }
   fclose(file);
@@ -870,8 +862,10 @@ int main() {
 
   if (!_isExecutedFirst) {
     _isExecutedFirst = true;
-    load_animals_data(start_areas);
+    // here is an mistake
+    // load_areas_data goes first
     load_areas_data();
+    load_animals_data(start_areas);
   }
 
 menu:
