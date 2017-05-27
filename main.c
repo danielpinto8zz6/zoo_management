@@ -9,7 +9,6 @@
 #include <string.h>
 
 #define SIZE 50
-#define INCOMPATIBILITY false;
 
 // Estrutura animais
 typedef struct animals {
@@ -102,6 +101,24 @@ void PressEnterToContinue(void) {
   clear_newlines();
   while (getchar() != '\n')
     ;
+}
+
+// Função para verificar compatibilidade de animais dentro do mesmo espaço
+void compatibility(list_animals *data, char species[SIZE],
+                   char location[SIZE]) {
+  list_areas *areas;
+
+  // Verificamos se a localização do animal inserido ja está ocupada por animais
+  // de outra espécie
+  for (; data != NULL; data = data->prox) {
+    if (strcmp(species, data->species) == 0) {
+      if (strcmp(location, areas->identifier) != 0) {
+        printf("\n\tO animal %s nao pode ser inserido nesta localizacao",
+               data->name);
+        PressEnterToContinue();
+      }
+    }
+  }
 }
 
 void transfer_animal_data(list_animals *data, char *key, char *area) {
