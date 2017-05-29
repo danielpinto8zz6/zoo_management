@@ -34,22 +34,24 @@ void header(void);
 void clearScreen(void);
 void clear_newlines(void);
 void PressEnterToContinue(void);
+void compatibility(list_animals *data, char species[50], char location[50]);
+void transfer_animal_data(list_animals *data, char *key, char *area);
+void transfer_animal(void);
 void load_animals_data(list_areas *data);
 void save_animals_data(list_animals *data);
+void save_list_into(list_animals *data, FILE *file);
+void show_areas(list_areas *data);
 void save_areas_data(list_areas *data);
 void load_areas_data(void);
-list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
-                             int nr_adjacent_areas, char *adjacent_areas);
+list_areas *insert_area_data(list_areas *data, char *identifier, float capacity, int nr_adjacent_areas, char *adjacent_areas);
 void delete_area(list_animals *animals_data);
 list_areas *delete_area_data(list_areas *data, char *key);
 void create_area(void);
 void menu_areas(void);
 void load_animals(list_areas *data);
-bool check_empty(FILE *file);
+_Bool check_empty(FILE *file);
 void born_animal(void);
-list_animals *insert_animal_data(list_animals *data, char species[SIZE],
-                                 char name[SIZE], float weight,
-                                 char location[SIZE]);
+list_animals *insert_animal_data(list_animals *data, char species[50], char name[50], float weight, char location[50]);
 void show_animals(list_animals *data);
 int verify_list_animals(list_animals *data);
 int verify_list_areas(list_areas *data);
@@ -58,9 +60,6 @@ list_animals *delete_animal_data(list_animals *data, char *key);
 void search_animals_data(list_animals *data, char *key, int filter);
 void search_animals(int filter);
 void menu_animals(void);
-
-void save_list_into(list_animals *data, FILE *file);
-
 int main(void);
 
 // Iniciar os dados das listas
@@ -279,9 +278,7 @@ void save_areas_data(list_areas *data) {
 
 void load_areas_data(void) {
   char line[256];
-  char identifier[SIZE], adjacent_areas[SIZE];
-  float capacity;
-  int nr_adjacent_areas;
+  list_areas load;
 
   FILE *file;
   file = fopen("areas.txt", "r");
@@ -298,16 +295,17 @@ void load_areas_data(void) {
     while (fgets(line, sizeof(line), file)) {
       // Em cada linha retirar a seguinte informação e enviar para a função que
       // insere os dados na estrutura
-      sscanf(line, "%s %f %d %s", identifier, &capacity, &nr_adjacent_areas,
-             adjacent_areas);
+      sscanf(line, "%s %f %d %s", load.identifier, &load.capacity,
+             &load.nr_adjacent_areas, load.adjacent_areas);
       // Não esquecer de implementar condições para o programa apenas aceitar o
       // registo se não ultrapassar a capacidade do local ou se a area não
       // existir
 
       // Enviar dados recebidos para a função que copia os dados para a
       // Estrutura
-      start_areas = insert_area_data(start_areas, identifier, capacity,
-                                     nr_adjacent_areas, adjacent_areas);
+      start_areas =
+          insert_area_data(start_areas, load.identifier, load.capacity,
+                           load.nr_adjacent_areas, load.adjacent_areas);
     }
   }
   fclose(file);
@@ -420,29 +418,29 @@ list_areas *delete_area_data(list_areas *data, char *key) {
 
 // Função para criar uma nova área
 void create_area(void) {
-  char identifier[SIZE], adjacent_areas[SIZE];
-  int nr_adjacent_areas = 0, x;
-  float capacity;
+  int x;
+
+  list_areas load;
 
   clearScreen();
   header();
 
   printf("\n\tDigite o identificador da area : ");
-  scanf(" %49[^\n]", identifier);
+  scanf(" %49[^\n]", load.identifier);
   printf("\n\tDigite a capacidade da area : ");
-  scanf("%f", &capacity);
+  scanf("%f", &load.capacity);
   do {
     printf("\n\tDigite o numero de areas adjacentes [max : 3] : ");
-    scanf("%d", &nr_adjacent_areas);
-  } while (nr_adjacent_areas < 0 || nr_adjacent_areas > 3);
-  for (x = 0; x < nr_adjacent_areas; x++) {
+    scanf("%d", &load.nr_adjacent_areas);
+  } while (load.nr_adjacent_areas < 0 || load.nr_adjacent_areas > 3);
+  for (x = 0; x < load.nr_adjacent_areas; x++) {
     printf("\n\tDigite a area adjacente %d : ", x + 1);
-    scanf(" %49[^\n]", adjacent_areas);
+    scanf(" %49[^\n]", load.adjacent_areas);
   }
 
   // Enviar dados recebidos para a função que copia os dados para a Estrutura
-  start_areas = insert_area_data(start_areas, identifier, capacity,
-                                 nr_adjacent_areas, adjacent_areas);
+  start_areas = insert_area_data(start_areas, load.identifier, load.capacity,
+                                 load.nr_adjacent_areas, load.adjacent_areas);
 
   printf("\n\tArea creada com sucesso!\n\n");
   PressEnterToContinue();
@@ -492,9 +490,9 @@ menu:
 // Função para carregar animais a partir de um ficheiro de texto
 void load_animals(list_areas *data) {
   char fileName[20], line[256];
-  char species[SIZE], name[SIZE], location[SIZE];
-  float weight;
   int found = 0, x = 0;
+
+  list_animals load;
 
   FILE *file;
 
@@ -531,7 +529,8 @@ void load_animals(list_areas *data) {
         // Em cada linha retirar a seguinte informação e enviar para a função
         // que
         // insere os dados na estrutura
-        sscanf(line, "%s %s %f %s", species, name, &weight, location);
+        sscanf(line, "%s %s %f %s", load.species, load.name, &load.weight,
+               load.location);
         // Não esquecer de implementar condições para o programa apenas aceitar
         // o
         // registo se não ultrapassar a capacidade do local ou se a area não
@@ -540,7 +539,7 @@ void load_animals(list_areas *data) {
         // Enviar dados recebidos para a função que copia os dados para a
         // Estrutura
         for (; data != NULL; data = data->prox) {
-          if (strcmp(location, data->identifier) == 0) {
+          if (strcmp(load.location, data->identifier) == 0) {
             found++;
           }
         }
@@ -550,8 +549,9 @@ void load_animals(list_areas *data) {
         } else { // Enviar dados recebidos para a função que copia os dados para
                  // a
           // Estrutura
-          start_animals = insert_animal_data(start_animals, species, name,
-                                             weight, location);
+          start_animals =
+              insert_animal_data(start_animals, load.species, load.name,
+                                 load.weight, load.location);
         }
       }
     }
@@ -584,24 +584,24 @@ bool check_empty(FILE *file) {
 
 // Inserir animal (Função que recebe os dados do animal)
 void born_animal(void) {
-  char name[SIZE], species[SIZE], location[SIZE];
-  float weight;
+
+  list_animals load;
 
   clearScreen();
   header();
 
   printf("\n\tDigite a especie : ");
-  scanf(" %49[^\n]", species);
+  scanf(" %49[^\n]", load.species);
   printf("\n\tDigite o nome : ");
-  scanf(" %49[^\n]", name);
+  scanf(" %49[^\n]", load.name);
   printf("\n\tDigite o peso : ");
-  scanf("%f", &weight);
+  scanf("%f", &load.weight);
   printf("\n\tDigite a localizacao : ");
-  scanf(" %49[^\n]", location);
+  scanf(" %49[^\n]", load.location);
 
   // Enviar dados recebidos para a função que copia os dados para a Estrutura
-  start_animals =
-      insert_animal_data(start_animals, species, name, weight, location);
+  start_animals = insert_animal_data(start_animals, load.species, load.name,
+                                     load.weight, load.location);
 
   printf("\n\tAnimal inserido com sucesso!\n\n");
   PressEnterToContinue();
