@@ -1,3 +1,3 @@
 Leao Simba 100 AreaA
-Zebra Leopoldo 100 AreaA
-Cao Joao 100 AreaB
+Leao Leopoldo 100 AreaA
+

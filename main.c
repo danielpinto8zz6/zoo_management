@@ -37,7 +37,7 @@ list_animals *insert_animal_data(list_animals *data, char species[SIZE],
                                  char location[SIZE]);
 list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
                              int nr_adjacent_areas, char *adjacent_areas);
-void born_animal(list_animals *data);
+void born_animal(list_animals *data, list_animals *data_2);
 int check_capacity(list_areas *areas_data, list_animals *animals_data,
                    char *identifier, float weight);
 bool check_empty(FILE *file);
@@ -587,55 +587,99 @@ bool check_empty(FILE *file) {
   return false;
 }
 
+int check_if_parent_exists(list_animals *data, char *parent) {
+  for (; data != NULL; data = data->prox) {
+    if (strcmp(parent, data->name) == 0) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 // Inserir animal (Função que recebe os dados do animal)
-void born_animal(list_animals *data) {
+void born_animal(list_animals *data, list_animals *data_2) {
 
   list_animals load;
-  char parent[SIZE];
-  int found = 0;
+  char parent_1[SIZE], parent_2[SIZE];
+  int nr_parents;
 
   clearScreen();
   header();
 
-  // printf("\n\tDigite a especie : ");
-  // scanf(" %49[^\n]", load.species);
   printf("\n\tDigite o nome do animal : ");
   scanf(" %49[^\n]", load.name);
-  // printf("\n\tDigite o peso : ");
-  // scanf("%f", &load.weight);
-  // printf("\n\tDigite a localizacao : ");
-  // scanf(" %49[^\n]", load.location);
-  printf("\n\tDigite o nome do projenitor : ");
-  scanf(" %49[^\n]", parent);
 
-  for (; data != NULL; data = data->prox) {
-    if (strcmp(parent, data->name) == 0) {
-      strncpy(load.species, data->species, strlen(data->species) + 1);
-      load.weight = data->weight * 0.20;
-      strncpy(load.location, data->location, strlen(data->location) + 1);
-      found++;
-      break;
-    }
-  }
-  if (found == 0) {
-    printf("\n\tNao existe nenhum projenitor com esse nome, a terminar!\n");
-    printf("\n");
+  do {
+    printf("\n\tVai inserir 1 ou 2 projenitores : ");
+    scanf("%d", &nr_parents);
+  } while (nr_parents < 0 && nr_parents > 3);
+
+  printf("\n\tDigite o nome do projenitor : ");
+  scanf(" %49[^\n]", parent_1);
+  if (check_if_parent_exists(start_animals, parent_1) == 0) {
+    printf("\n\tNao existe nenhum projenitor com o nome %s, a terminar!\n",
+           parent_1);
     PressEnterToContinue();
+    return;
   } else {
-    // Se não exceder o total, iserir o animal
-    if (check_capacity(start_areas, start_animals, load.location,
-                       load.weight) == 1) {
-      start_animals = insert_animal_data(start_animals, load.species, load.name,
-                                         load.weight, load.location);
-      printf("\n\t%s registado com sucesso!\n", load.name);
-    } else {
-      printf("\n\t%s excede a capacidade total da area, a ignorar\n",
-             load.name);
+    for (; data != NULL; data = data->prox) {
+      if (strcmp(parent_1, data->name) == 0) {
+        strncpy(load.species, data->species, strlen(data->species) + 1);
+        load.weight = data->weight * 0.20;
+        strncpy(load.location, data->location, strlen(data->location) + 1);
+        break;
+      }
     }
-    printf("\n");
-    PressEnterToContinue();
   }
-  menu_animals();
+  if (nr_parents == 2) {
+    printf("\n\tDigite o nome do projenitor 2 : ");
+    scanf(" %49[^\n]", parent_2);
+    if (check_if_parent_exists(start_animals, parent_2) == 0) {
+      printf("\n\tNao existe nenhum projenitor com o nome %s, a terminar!\n",
+             parent_2);
+      PressEnterToContinue();
+      return;
+    } else {
+      // data_2 porque data ja foi percorrido, está na posição prox, o data_2
+      // funciona como auxiliar
+      for (; data_2 != NULL; data_2 = data_2->prox) {
+        if (strcmp(parent_2, data_2->name) == 0) {
+          // Certificar que os projenitores são da mesma espécie
+          if (strcmp(load.species, data_2->species) == 0) {
+            // Certificar que os projenitores estão na mesma localização
+            if (strcmp(load.location, data_2->location) == 0) {
+              load.weight = load.weight + (data_2->weight * 0.20);
+            } else {
+              printf("\n\tOs projenitores nao se encontram na mesma area! A "
+                     "terminar...\n");
+              PressEnterToContinue();
+              menu_animals();
+            }
+          } else {
+            printf("\n\tOs projenitores nao sao da mesma especie! A "
+                   "terminar...\n");
+            PressEnterToContinue();
+            menu_animals();
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  // Se não exceder o total, iserir o animal
+  if (check_capacity(start_areas, start_animals, load.location, load.weight) ==
+      1) {
+    start_animals = insert_animal_data(start_animals, load.species, load.name,
+                                       load.weight, load.location);
+    printf("\n\t%s registado com sucesso!\n", load.name);
+  } else {
+    printf("\n\t%s excede a capacidade total da area, a ignorar\n", load.name);
+  }
+  printf("\n");
+  PressEnterToContinue();
+
+  return;
 }
 
 // Inserir dados recebidos
@@ -900,7 +944,8 @@ menu:
     break;
   case 7:
     clearScreen();
-    born_animal(start_animals);
+    born_animal(start_animals, start_animals);
+    break;
   case 8:
     clearScreen();
     load_animals();
