@@ -37,7 +37,7 @@ list_animals *insert_animal_data(list_animals *data, char species[SIZE],
                                  char location[SIZE]);
 list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
                              int nr_adjacent_areas, char *adjacent_areas);
-void born_animal(void);
+void born_animal(list_animals *data);
 int check_capacity(list_areas *areas_data, list_animals *animals_data,
                    char *identifier, float weight);
 bool check_empty(FILE *file);
@@ -202,7 +202,8 @@ void load_animals_data() {
                                  load.weight, load.location);
           printf("\n\t%s carregado com sucesso!\n", load.name);
         } else {
-          printf("\n\t%s excede o peso total da area, a ignorar\n", load.name);
+          printf("\n\t%s excede a capacidade total da area, a ignorar\n",
+                 load.name);
         }
       }
     }
@@ -561,7 +562,8 @@ void load_animals(void) {
                                    load.weight, load.location);
             printf("\n\t%s carregado com sucesso!\n", load.name);
           } else {
-            printf("\n\t%s excede o peso total da area, a ignorar\n", load.name);
+            printf("\n\t%s excede a capacidade total da area, a ignorar\n",
+                   load.name);
           }
         }
       }
@@ -586,28 +588,53 @@ bool check_empty(FILE *file) {
 }
 
 // Inserir animal (Função que recebe os dados do animal)
-void born_animal(void) {
+void born_animal(list_animals *data) {
 
   list_animals load;
+  char parent[SIZE];
+  int found = 0;
 
   clearScreen();
   header();
 
-  printf("\n\tDigite a especie : ");
-  scanf(" %49[^\n]", load.species);
-  printf("\n\tDigite o nome : ");
+  // printf("\n\tDigite a especie : ");
+  // scanf(" %49[^\n]", load.species);
+  printf("\n\tDigite o nome do animal : ");
   scanf(" %49[^\n]", load.name);
-  printf("\n\tDigite o peso : ");
-  scanf("%f", &load.weight);
-  printf("\n\tDigite a localizacao : ");
-  scanf(" %49[^\n]", load.location);
+  // printf("\n\tDigite o peso : ");
+  // scanf("%f", &load.weight);
+  // printf("\n\tDigite a localizacao : ");
+  // scanf(" %49[^\n]", load.location);
+  printf("\n\tDigite o nome do projenitor : ");
+  scanf(" %49[^\n]", parent);
 
-  // Enviar dados recebidos para a função que copia os dados para a Estrutura
-  start_animals = insert_animal_data(start_animals, load.species, load.name,
-                                     load.weight, load.location);
-
-  printf("\n\tAnimal inserido com sucesso!\n\n");
-  PressEnterToContinue();
+  for (; data != NULL; data = data->prox) {
+    if (strcmp(parent, data->name) == 0) {
+      strncpy(load.species, data->species, strlen(data->species) + 1);
+      load.weight = data->weight * 0.20;
+      strncpy(load.location, data->location, strlen(data->location) + 1);
+      found++;
+      break;
+    }
+  }
+  if (found == 0) {
+    printf("\n\tNao existe nenhum projenitor com esse nome, a terminar!\n");
+    printf("\n");
+    PressEnterToContinue();
+  } else {
+    // Se não exceder o total, iserir o animal
+    if (check_capacity(start_areas, start_animals, load.location,
+                       load.weight) == 1) {
+      start_animals = insert_animal_data(start_animals, load.species, load.name,
+                                         load.weight, load.location);
+      printf("\n\t%s registado com sucesso!\n", load.name);
+    } else {
+      printf("\n\t%s excede a capacidade total da area, a ignorar\n",
+             load.name);
+    }
+    printf("\n");
+    PressEnterToContinue();
+  }
   menu_animals();
 }
 
@@ -873,7 +900,7 @@ menu:
     break;
   case 7:
     clearScreen();
-    born_animal();
+    born_animal(start_animals);
   case 8:
     clearScreen();
     load_animals();
