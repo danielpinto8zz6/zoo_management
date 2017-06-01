@@ -289,7 +289,6 @@ void save_areas_data(list_areas *data) {
 }
 
 void load_areas_data(void) {
-  char line[256];
   list_areas load;
 
   FILE *file;
@@ -303,18 +302,8 @@ void load_areas_data(void) {
     PressEnterToContinue();
     return;
   } else {
-    // Ler o ficheiro linha por linha
-    while (fgets(line, sizeof(line), file)) {
-      // Em cada linha retirar a seguinte informação e enviar para a função que
-      // insere os dados na estrutura
-      sscanf(line, "%s %f %d %s", load.identifier, &load.capacity,
-             &load.nr_adjacent_areas, load.adjacent_areas);
-      // Não esquecer de implementar condições para o programa apenas aceitar o
-      // registo se não ultrapassar a capacidade do local ou se a area não
-      // existir
-
-      // Enviar dados recebidos para a função que copia os dados para a
-      // Estrutura
+    while (fscanf(file, "%s %f %d %s", load.identifier, &load.capacity,
+                  &load.nr_adjacent_areas, load.adjacent_areas) == 4) {
       start_areas =
           insert_area_data(start_areas, load.identifier, load.capacity,
                            load.nr_adjacent_areas, load.adjacent_areas);
@@ -510,7 +499,7 @@ int check_if_area_exists(list_areas *data, char *location) {
 
 // Função para carregar animais a partir de um ficheiro de texto
 void load_animals(void) {
-  char fileName[20], line[256];
+  char fileName[20];
 
   list_animals load;
 
@@ -544,13 +533,8 @@ void load_animals(void) {
       PressEnterToContinue();
       return;
     } else {
-      // Ler o ficheiro linha por linha
-      while (fgets(line, sizeof(line), file)) {
-        // Em cada linha retirar a seguinte informação e enviar para a função
-        // que insere os dados na estrutura
-        sscanf(line, "%s %s %f %s", load.species, load.name, &load.weight,
-               load.location);
-
+      while (fscanf(file, "%s %s %f %s", load.species, load.name, &load.weight,
+                    load.location) == 4) {
         if (check_if_area_exists(start_areas, load.location) == 0) {
           printf("\n\t%s nao tem uma area valida! A ignorar...\n", load.name);
         } else {
@@ -567,10 +551,11 @@ void load_animals(void) {
           }
         }
       }
-      printf("\n");
-      PressEnterToContinue();
     }
+    printf("\n");
+    PressEnterToContinue();
   }
+
   fclose(file);
 }
 
