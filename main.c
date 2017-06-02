@@ -30,42 +30,43 @@ typedef struct areas {
 } list_areas;
 
 // Definir funções previamente para evitar erros
-list_animals *delete_animal_data(list_animals *data, char *key);
-list_areas *delete_area_data(list_areas *data, char *key);
-list_animals *insert_animal_data(list_animals *data, char species[SIZE],
-                                 char name[SIZE], float weight,
-                                 char location[SIZE]);
-list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
-                             int nr_adjacent_areas, char *adjacent_areas);
-void born_animal(list_animals *data, list_animals *data_2);
+void header(void);
+void clearScreen(void);
+void clear_newlines(void);
+void PressEnterToContinue(void);
 int check_capacity(list_areas *areas_data, list_animals *animals_data,
                    char *identifier, float weight);
-bool check_empty(FILE *file);
-int check_if_area_exists(list_areas *data, char *location);
-void clear_newlines(void);
-void clearScreen();
-void create_area(void);
-void delete_animal(void);
-void delete_area(list_animals *animals_data);
-void header();
-void load_animals_data(void);
-void load_animals(void);
-void load_areas_data(void);
-int main();
-void menu_animals(void);
-void menu_areas(void);
-void PressEnterToContinue(void);
-void save_animals_data(list_animals *data);
-void save_areas_data(list_areas *data);
-void save_list_into(list_animals *data, FILE *file);
-void search_animals_data(list_animals *data, char *key, int filter);
-void search_animals(int filter);
-void show_animals(list_animals *data);
-void show_areas(list_areas *data);
 void transfer_animal_data(list_animals *data, char *key, char *area);
-void transfer_animal();
+void transfer_animal(list_animals *data);
+void load_animals_data(void);
+void save_animals_data(list_animals *data);
+void save_list_into(list_animals *data, FILE *file);
+void show_areas(list_areas *data);
+void save_areas_data(list_areas *data);
+void load_areas_data(void);
+list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
+                             int nr_adjacent_areas, char *adjacent_areas);
+void delete_area(list_animals *animals_data);
+list_areas *delete_area_data(list_areas *data, char *key);
+void create_area(void);
+void menu_areas(void);
+int check_if_area_exists(list_areas *data, char *location);
+void load_animals(void);
+_Bool check_empty(FILE *file);
+int check_if_animal_exists(list_animals *data, char *animal);
+void born_animal(list_animals *data, list_animals *data_2);
+list_animals *insert_animal_data(list_animals *data, char species[50],
+                                 char name[50], float weight,
+                                 char location[50]);
+void show_animals(list_animals *data);
 int verify_list_animals(list_animals *data);
 int verify_list_areas(list_areas *data);
+void delete_animal(void);
+list_animals *delete_animal_data(list_animals *data, char *key);
+void search_animals_data(list_animals *data, char *key, int filter);
+void search_animals(int filter);
+void menu_animals(void);
+int main(void);
 
 // Iniciar os dados das listas
 list_animals *start_animals = NULL;
@@ -120,7 +121,7 @@ int check_capacity(list_areas *areas_data, list_animals *animals_data,
       total_animals_weight = total_animals_weight + animals_data->weight;
     }
   }
-  if ((total_animals_weight + weight) < area_capacity) {
+  if ((total_animals_weight + weight) <= area_capacity) {
     // A área suporta o animal
     return 1;
   } else {
@@ -128,33 +129,20 @@ int check_capacity(list_areas *areas_data, list_animals *animals_data,
   }
 }
 
-void transfer_animal_data(list_animals *data, char *key, char *area) {
-  int find = 0;
-
+void transfer_animal_data(list_animals *data, char *name, char *area) {
   // Quando encontrar o animal a transferir terminar o ciclo e efetuar a
   // transferência
   for (; data != NULL; data = data->prox) {
-    if (strcmp(key, data->name) == 0) {
-      find = 1;
+    if (strcmp(name, data->name) == 0) {
       strncpy(data->location, area, strlen(area) + 1);
       break;
     }
   }
-
-  // Se encontrou a procura
-  if (find == 1) {
-    printf("\n\tTransferido!\n\n");
-    PressEnterToContinue();
-  } else {
-    printf("\n\tNenhum resultado encontrado!\n\n");
-    PressEnterToContinue();
-  }
-
   return;
 }
 
-void transfer_animal() {
-  char key[SIZE], area[SIZE];
+void transfer_animal(list_animals *data) {
+  list_animals load;
 
   // Se a lista não estiver vazia
   if (!verify_list_animals(start_animals)) {
@@ -162,11 +150,38 @@ void transfer_animal() {
     header();
     // Ler a chave a procurar
     printf("\n\tInsira o nome do animal a transferir : ");
-    scanf(" %49[^\n]", key);
-    printf("\n\tInsira a area para qual o deseja transferir : ");
-    scanf(" %49[^\n]", area);
-    // chamando a função que irá procurar a chave
-    transfer_animal_data(start_animals, key, area);
+    scanf(" %49[^\n]", load.name);
+    if (check_if_animal_exists(start_animals, load.name) == 0) {
+      printf("\n\tNao existe nenhum animal com o nome %s, a terminar!\n",
+             load.name);
+    } else {
+      printf("\n\tInsira a area para qual o deseja transferir : ");
+      scanf(" %49[^\n]", load.location);
+      if (check_if_area_exists(start_areas, load.location) == 0) {
+        printf("\n\t%s nao exite! A terminar...\n", load.location);
+      } else {
+        // Verificar peso do animal
+        for (; data != NULL; data = data->prox) {
+          if (strcmp(load.name, data->name) == 0) {
+            load.weight = data->weight;
+            break;
+          }
+        }
+        // Verificar se o animal excede o peso da nova area
+        if (check_capacity(start_areas, start_animals, load.location,
+                           load.weight) == 1) {
+          // Se não exceder, transferir
+          transfer_animal_data(start_animals, load.name, load.location);
+          printf("\n\t%s transferido com sucesso!\n", load.name);
+        } else {
+          printf("\n\t%s excede a capacidade total da area, a ignorar\n",
+                 load.name);
+        }
+      }
+    }
+    printf("\n");
+    PressEnterToContinue();
+    return;
   }
 }
 
@@ -189,6 +204,7 @@ void load_animals_data() {
     return;
     // Assumir que o zoo ainda não tem animais
   } else {
+    free(start_animals);
     // Os dados são armazenados directamente na variável espécie
     while (fread(&load, sizeof(list_animals), 1, file)) {
       if (check_if_area_exists(start_areas, load.location) == 0) {
@@ -302,6 +318,7 @@ void load_areas_data(void) {
     PressEnterToContinue();
     return;
   } else {
+    free(start_animals);
     while (fscanf(file, "%s %f %d %s", load.identifier, &load.capacity,
                   &load.nr_adjacent_areas, load.adjacent_areas) == 4) {
       start_areas =
@@ -325,7 +342,7 @@ list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
   strncpy(start_areas->adjacent_areas, adjacent_areas,
           strlen(adjacent_areas) + 1);
 
-  // Se os dados forem inseridos no start do programa aponta para a proxima
+  // Se os dados forem inseridos no inicio do programa aponta para a proxima
   // posição da lista
   // Caso contrário aponta para a lista já existente
   if (data == NULL) {
@@ -335,7 +352,6 @@ list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
     // O próximo valor aponta para a lista já existente
     start_areas->prox = data;
   }
-
   return start_areas;
 }
 
@@ -572,9 +588,9 @@ bool check_empty(FILE *file) {
   return false;
 }
 
-int check_if_parent_exists(list_animals *data, char *parent) {
+int check_if_animal_exists(list_animals *data, char *animal) {
   for (; data != NULL; data = data->prox) {
-    if (strcmp(parent, data->name) == 0) {
+    if (strcmp(animal, data->name) == 0) {
       return 1;
     }
   }
@@ -601,7 +617,7 @@ void born_animal(list_animals *data, list_animals *data_2) {
 
   printf("\n\tDigite o nome do projenitor : ");
   scanf(" %49[^\n]", parent_1);
-  if (check_if_parent_exists(start_animals, parent_1) == 0) {
+  if (check_if_animal_exists(start_animals, parent_1) == 0) {
     printf("\n\tNao existe nenhum projenitor com o nome %s, a terminar!\n",
            parent_1);
     PressEnterToContinue();
@@ -619,7 +635,7 @@ void born_animal(list_animals *data, list_animals *data_2) {
   if (nr_parents == 2) {
     printf("\n\tDigite o nome do projenitor 2 : ");
     scanf(" %49[^\n]", parent_2);
-    if (check_if_parent_exists(start_animals, parent_2) == 0) {
+    if (check_if_animal_exists(start_animals, parent_2) == 0) {
       printf("\n\tNao existe nenhum projenitor com o nome %s, a terminar!\n",
              parent_2);
       PressEnterToContinue();
@@ -925,7 +941,7 @@ menu:
     break;
   case 6:
     clearScreen();
-    transfer_animal();
+    transfer_animal(start_animals);
     break;
   case 7:
     clearScreen();
