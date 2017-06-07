@@ -15,7 +15,8 @@ typedef struct animals {
   char name[SIZE];
   char species[SIZE];
   char location[SIZE];
-  char family[SIZE];
+  int nr_parents;
+  char family[2][SIZE];
   int id;
   float weight;
   struct animals *prox;
@@ -56,10 +57,11 @@ int check_if_area_exists(list_areas *data, char *location);
 void load_animals(void);
 _Bool check_empty(FILE *file);
 int check_if_animal_exists(list_animals *data, char *animal);
-void born_animal(list_animals *data, list_animals *data_2);
+void born_animal(list_animals *data);
 list_animals *insert_animal_data(list_animals *data, char species[SIZE],
                                  char name[SIZE], float weight,
-                                 char location[SIZE], int id);
+                                 char location[SIZE], int id, int nr_parents,
+                                 char family[][SIZE]);
 void show_animals(list_animals *data);
 int verify_list_animals(list_animals *data);
 int verify_list_areas(list_areas *data);
@@ -229,9 +231,9 @@ void load_animals_data() {
         // Se não exceder o total, iserir o animal
         if (check_capacity(start_areas, start_animals, load.location,
                            load.weight) == 1) {
-          start_animals =
-              insert_animal_data(start_animals, load.species, load.name,
-                                 load.weight, load.location, load.id);
+          start_animals = insert_animal_data(
+              start_animals, load.species, load.name, load.weight,
+              load.location, load.id, load.nr_parents, load.family);
           printf("\n\t%s carregado com sucesso!\n", load.name);
         } else {
           printf("\n\t%s excede a capacidade total da area, a ignorar\n",
@@ -602,7 +604,7 @@ void load_animals(void) {
                              load.weight) == 1) {
             start_animals =
                 insert_animal_data(start_animals, load.species, load.name,
-                                   load.weight, load.location, 0);
+                                   load.weight, load.location, 0, 0, 0);
             printf("\n\t%s carregado com sucesso!\n", load.name);
           } else {
             printf("\n\t%s excede a capacidade total da area, a ignorar\n",
@@ -650,11 +652,10 @@ int check_if_animal_exists(list_animals *data, char *key) {
 }
 
 // Inserir animal (Função que recebe os dados do animal)
-void born_animal(list_animals *data, list_animals *data_2) {
+void born_animal(list_animals *data) {
 
+  list_animals *aux = data;
   list_animals load;
-  char parent_1[SIZE], parent_2[SIZE];
-  int nr_parents;
 
   char specie_id[SIZE + 5];
   char id[5];
@@ -667,14 +668,14 @@ void born_animal(list_animals *data, list_animals *data_2) {
 
   do {
     printf("\n\tVai inserir 1 ou 2 projenitores : ");
-    scanf("%d", &nr_parents);
-  } while (nr_parents < 0 && nr_parents > 3);
+    scanf("%d", &load.nr_parents);
+  } while (load.nr_parents < 0 && load.nr_parents > 3);
 
   printf("\n\tDigite o id do projenitor : ");
-  scanf(" %49[^\n]", parent_1);
-  if (check_if_animal_exists(start_animals, parent_1) == 0) {
+  scanf(" %49[^\n]", load.family[0]);
+  if (check_if_animal_exists(start_animals, load.family[0]) == 0) {
     printf("\n\tNao existe nenhum projenitor com o id %s, a terminar!\n",
-           parent_1);
+           load.family[0]);
     PressEnterToContinue();
     return;
   } else {
@@ -683,7 +684,7 @@ void born_animal(list_animals *data, list_animals *data_2) {
       sprintf(id, "%04d", data->id);
       strcat(specie_id, id);
 
-      if (strcmp(parent_1, specie_id) == 0) {
+      if (strcmp(load.family[0], specie_id) == 0) {
         strncpy(load.species, data->species, strlen(data->species) + 1);
         load.weight = data->weight * 0.20;
         strncpy(load.location, data->location, strlen(data->location) + 1);
@@ -691,29 +692,29 @@ void born_animal(list_animals *data, list_animals *data_2) {
       }
     }
   }
-  if (nr_parents == 2) {
+  if (load.nr_parents == 2) {
     printf("\n\tDigite o id do projenitor 2 : ");
-    scanf(" %49[^\n]", parent_2);
-    if (check_if_animal_exists(start_animals, parent_2) == 0) {
+    scanf(" %49[^\n]", load.family[1]);
+    if (check_if_animal_exists(start_animals, load.family[1]) == 0) {
       printf("\n\tNao existe nenhum projenitor com o id %s, a terminar!\n",
-             parent_2);
+             load.family[1]);
       PressEnterToContinue();
       return;
     } else {
-      // data_2 porque data ja foi percorrido, está na posição prox, o data_2
+      // aux porque data ja foi percorrido, está na posição prox, o aux
       // funciona como auxiliar
-      for (; data_2 != NULL; data_2 = data_2->prox) {
+      for (; aux != NULL; aux = aux->prox) {
 
         strcpy(specie_id, data->species);
         sprintf(id, "%04d", data->id);
         strcat(specie_id, id);
 
-        if (strcmp(parent_2, specie_id) == 0) {
+        if (strcmp(load.family[1], specie_id) == 0) {
           // Certificar que os projenitores são da mesma espécie
-          if (strcmp(load.species, data_2->species) == 0) {
+          if (strcmp(load.species, aux->species) == 0) {
             // Certificar que os projenitores estão na mesma localização
-            if (strcmp(load.location, data_2->location) == 0) {
-              load.weight = load.weight + (data_2->weight * 0.20);
+            if (strcmp(load.location, aux->location) == 0) {
+              load.weight = load.weight + (aux->weight * 0.20);
             } else {
               printf("\n\tOs projenitores nao se encontram na mesma area! A "
                      "terminar...\n");
@@ -735,9 +736,9 @@ void born_animal(list_animals *data, list_animals *data_2) {
   // Se não exceder o total, iserir o animal
   if (check_capacity(start_areas, start_animals, load.location, load.weight) ==
       1) {
-    start_animals = insert_animal_data(
-        start_animals, load.species, load.name, load.weight, load.location,
-        0); // <--- here we put zero like the code for a new animal
+    start_animals =
+        insert_animal_data(start_animals, load.species, load.name, load.weight,
+                           load.location, 0, load.nr_parents, load.family);
     printf("\n\t%s registado com sucesso!\n", load.name);
   } else {
     printf("\n\t%s excede a capacidade total da area, a ignorar\n", load.name);
@@ -751,7 +752,9 @@ void born_animal(list_animals *data, list_animals *data_2) {
 // Inserir dados recebidos
 list_animals *insert_animal_data(list_animals *data, char species[SIZE],
                                  char name[SIZE], float weight,
-                                 char location[SIZE], int id) {
+                                 char location[SIZE], int id, int nr_parents,
+                                 char family[][SIZE]) {
+  int x;
   list_animals *start_animals;
   //------------------------------------------------------------------------
   list_animals *aux = data;
@@ -764,6 +767,10 @@ list_animals *insert_animal_data(list_animals *data, char species[SIZE],
   start_animals->weight = weight;
   strncpy(start_animals->location, location, strlen(location) + 1);
   start_animals->id = id;
+  start_animals->nr_parents = nr_parents;
+  for (x = 0; x < nr_parents; x++) {
+    strncpy(start_animals->family[x], family[x], strlen(family[x]) + 1);
+  }
 
   //-----------------------------------------------------------------------------
   //
@@ -800,6 +807,7 @@ list_animals *insert_animal_data(list_animals *data, char species[SIZE],
 }
 
 void show_animals(list_animals *data) {
+  int x;
   // Se não estiver vazio, mostra os dados
   if (!verify_list_animals(start_animals)) {
     clearScreen();
@@ -810,6 +818,9 @@ void show_animals(list_animals *data) {
       printf("\n\tNome = %s\n", data->name);
       printf("\n\tLocalizacao = %s\n", data->location);
       printf("\n\tPeso = %.2f\n", data->weight);
+      for (x = 0; x < data->nr_parents; x++) {
+        printf("\n\tProjenitor %d = %s\n", x + 1, data->family[x]);
+      }
       printf("\n\t-----------------\n");
     }
     printf("\n");
@@ -1037,7 +1048,7 @@ menu:
     break;
   case 7:
     clearScreen();
-    born_animal(start_animals, start_animals);
+    born_animal(start_animals);
     break;
   case 8:
     clearScreen();
