@@ -24,7 +24,7 @@ typedef struct animals {
 // Estrutura areas
 typedef struct areas {
   char identifier[SIZE];
-  char adjacent_areas[SIZE];
+  char adjacent_areas[3][SIZE];
   int nr_adjacent_areas;
   float capacity;
   struct areas *prox;
@@ -45,8 +45,9 @@ void save_list_into(list_animals *data, FILE *file);
 void show_areas(list_areas *data);
 void save_areas_data(list_areas *data);
 void load_areas_data(void);
-list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
-                             int nr_adjacent_areas, char *adjacent_areas);
+list_areas *insert_area_data(list_areas *data, char identifier[SIZE],
+                             float capacity, int nr_adjacent_areas,
+                             char adjacent_areas[][SIZE]);
 void delete_area(list_animals *animals_data);
 list_areas *delete_area_data(list_areas *data, char *key);
 void create_area(void);
@@ -164,8 +165,7 @@ void transfer_animal(list_animals *data) {
     printf("\n\tInsira o id do animal a transferir : ");
     scanf(" %49[^\n]", key);
     if (check_if_animal_exists(start_animals, key) == 0) {
-      printf("\n\tNao existe nenhum animal com o id %s, a terminar!\n",
-             key);
+      printf("\n\tNao existe nenhum animal com o id %s, a terminar!\n", key);
     } else {
       printf("\n\tInsira a area para qual o deseja transferir : ");
       scanf(" %49[^\n]", load.location);
@@ -191,8 +191,7 @@ void transfer_animal(list_animals *data) {
           transfer_animal_data(start_animals, key, load.location);
           printf("\n\t%s transferido com sucesso!\n", key);
         } else {
-          printf("\n\t%s excede a capacidade total da area, a ignorar\n",
-                 key);
+          printf("\n\t%s excede a capacidade total da area, a ignorar\n", key);
         }
       }
     }
@@ -282,6 +281,7 @@ void save_list_into(list_animals *data, FILE *file) {
 
 // // Função para ver áreas (não usada no programa, apenas para testes)
 void show_areas(list_areas *data) {
+  int x;
   // Se não estiver vazio, mostra os dados
   if (!verify_list_areas(start_areas)) {
     clearScreen();
@@ -290,8 +290,11 @@ void show_areas(list_areas *data) {
       printf("\n\tIdentificador = %s\n", data->identifier);
       printf("\n\tCapacidade = %f\n", data->capacity);
       printf("\n\tNumero de areas adjacentes = %d\n", data->nr_adjacent_areas);
-      printf("\n\tAreas adjacentes = %s\n", data->adjacent_areas);
-      printf("\n\t-----------------\n");
+      printf("\n\tAreas adjacentes = ");
+      for (x = 0; x < data->nr_adjacent_areas; x++) {
+        printf("%s ", data->adjacent_areas[x]);
+      }
+      printf("\n\n\t-----------------\n");
     }
     printf("\n");
     PressEnterToContinue();
@@ -314,8 +317,12 @@ void save_areas_data(list_areas *data) {
     // Antes de guardar os dados vamos limpar o ficheiro para os mesmo dados nao
     // serem inseridos duas vezes
     for (; data != NULL; data = data->prox) {
-      fprintf(file, "%s %.2f %d %s\n", data->identifier, data->capacity,
-              data->nr_adjacent_areas, data->adjacent_areas);
+      fprintf(file, "%s %.2f %d ", data->identifier, data->capacity,
+              data->nr_adjacent_areas);
+      for (int i = 0; i < data->nr_adjacent_areas; i++) {
+        fprintf(file, "%s ", data->adjacent_areas[i]);
+      }
+      fprintf(file, "\n");
     }
   }
   fclose(file);
@@ -336,8 +343,11 @@ void load_areas_data(void) {
     return;
   } else {
     free(start_animals);
-    while (fscanf(file, "%s %f %d %s", load.identifier, &load.capacity,
-                  &load.nr_adjacent_areas, load.adjacent_areas) == 4) {
+    while (fscanf(file, "%s %f %d", load.identifier, &load.capacity,
+                  &load.nr_adjacent_areas) == 3) {
+      for (int i = 0; i < load.nr_adjacent_areas; i++) {
+        fscanf(file, "%s", load.adjacent_areas[i]);
+      }
       start_areas =
           insert_area_data(start_areas, load.identifier, load.capacity,
                            load.nr_adjacent_areas, load.adjacent_areas);
@@ -347,8 +357,10 @@ void load_areas_data(void) {
 }
 
 // Função que insere os dados recebidos na estrutura de dados
-list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
-                             int nr_adjacent_areas, char *adjacent_areas) {
+list_areas *insert_area_data(list_areas *data, char identifier[SIZE],
+                             float capacity, int nr_adjacent_areas,
+                             char adjacent_areas[][SIZE]) {
+  int x;
   list_areas *start_areas;
   // Alocar memória para a posição atual
   start_areas = (list_areas *)malloc(sizeof(list_areas));
@@ -356,8 +368,10 @@ list_areas *insert_area_data(list_areas *data, char *identifier, float capacity,
   strncpy(start_areas->identifier, identifier, strlen(identifier) + 1);
   start_areas->capacity = capacity;
   start_areas->nr_adjacent_areas = nr_adjacent_areas;
-  strncpy(start_areas->adjacent_areas, adjacent_areas,
-          strlen(adjacent_areas) + 1);
+  for (x = 0; x < nr_adjacent_areas; x++) {
+    strncpy(start_areas->adjacent_areas[x], adjacent_areas[x],
+            strlen(adjacent_areas[x]) + 1);
+  }
   // Se os dados forem inseridos no inicio do programa aponta para a proxima
   // posição da lista
   // Caso contrário aponta para a lista já existente
@@ -458,8 +472,15 @@ void create_area(void) {
   clearScreen();
   header();
 
-  printf("\n\tDigite o identificador da area : ");
-  scanf(" %49[^\n]", load.identifier);
+  // Evitar o registo de uma area ja existente
+  do {
+    printf("\n\tDigite o identificador da area : ");
+    scanf(" %49[^\n]", load.identifier);
+  } while (check_if_area_exists(start_areas, load.identifier) == 1 &&
+           printf("\n\tJa existe uma area com o identificador %s, use outro "
+                  "identificador\n",
+                  load.identifier));
+
   printf("\n\tDigite a capacidade da area : ");
   scanf("%f", &load.capacity);
   do {
@@ -467,8 +488,14 @@ void create_area(void) {
     scanf("%d", &load.nr_adjacent_areas);
   } while (load.nr_adjacent_areas < 0 || load.nr_adjacent_areas > 3);
   for (x = 0; x < load.nr_adjacent_areas; x++) {
-    printf("\n\tDigite a area adjacente %d : ", x + 1);
-    scanf(" %49[^\n]", load.adjacent_areas);
+    do {
+      printf("\n\tDigite a area adjacente %d : ", x + 1);
+      scanf(" %49[^\n]", load.adjacent_areas[x]);
+    } while (
+        check_if_area_exists(start_areas, load.adjacent_areas[x]) == 0 &&
+        printf(
+            "\n\t%s nao e uma area existente! Insira uma area existente...\n",
+            load.adjacent_areas[x]));
   }
 
   // Enviar dados recebidos para a função que copia os dados para a Estrutura
@@ -834,53 +861,44 @@ void delete_animal(void) {
 // Função que apaga o animal definido
 list_animals *delete_animal_data(list_animals *data, char *key) {
   int find = 0;
-  list_animals *join, *aux, *fresh = data;
+  list_animals *aux, *fresh = data;
 
   char specie_id[SIZE + 5];
   char id[5];
-  // Correr a lista e verificar se encontra a string procurada, se sim,
+
+  // Correr a lista e verificar se encontra a string procurada
   // aumentar
-  // o contador e setar a variável de procura
-  for (; fresh != NULL; fresh = fresh->prox) {
+  if (fresh != NULL) {
     strcpy(specie_id, fresh->species);
     sprintf(id, "%04d", fresh->id);
     strcat(specie_id, id);
     if (strcmp(key, specie_id) == 0) {
+      aux = fresh;
+      fresh = fresh->prox;
+      free(aux);
+      data = fresh;
       find = 1;
-      // cont++;
-      key = fresh->name;
-      break;
     }
   }
+  if (find == 0) { // Senão, procura até encontrar
+    // Posiciona na frente do encontro para exclusão
+    for (; fresh->prox != NULL; fresh = fresh->prox) {
+      strcpy(specie_id, fresh->prox->species);
+      sprintf(id, "%04d", fresh->prox->id);
+      strcat(specie_id, id);
+      if (strcmp(key, specie_id) == 0) {
 
+        aux = fresh->prox;
+        // Aponta para o próximo valor válido
+        fresh->prox = aux->prox;
+        find = 1;
+        free(aux);
+        break;
+      }
+    }
+  }
   // Se encontrou a procura
   if (find == 1) {
-    // Se encontrou no primeira casa apaga a primeira casa
-    if (strcmp(key, data->name) == 0) {
-      aux = data;
-      data = data->prox;
-      free(aux);
-    }
-    // Senão, procura até encontrar
-    else {
-      aux = data;
-      // Posiciona na frente do encontro para exclusão
-      while (strcmp(key, aux->name) != 0) {
-        aux = aux->prox;
-      }
-
-      join = data;
-      // Enquanto o auxiliar juntou for diferente do posicionado para
-      // exclusão
-      while (join->prox != aux) {
-        join = join->prox;
-      }
-      // Aponta para o próximo valor válido
-      join->prox = aux->prox;
-
-      free(aux);
-    }
-
     printf("\n\tEliminado!\n\n");
     PressEnterToContinue();
   } else {
@@ -961,7 +979,7 @@ void search_animals(int filter) {
     // Ler a chave a procurar
     printf("\n\tDigite a procura : ");
     scanf(" %49[^\n]", key);
-    // chamando a função que irá procurar a chave
+    // chamando a função que ir�� procurar a chave
     search_animals_data(start_animals, key, filter);
   }
 }
