@@ -16,7 +16,9 @@ typedef struct animals {
   char species[SIZE];
   char location[SIZE];
   int nr_parents;
-  char family[2][SIZE];
+  char parents[2][SIZE];
+  int nr_descendants;
+  char descendants[SIZE][SIZE];
   int id;
   float weight;
   struct animals *prox;
@@ -61,7 +63,8 @@ void born_animal(list_animals *data);
 list_animals *insert_animal_data(list_animals *data, char species[SIZE],
                                  char name[SIZE], float weight,
                                  char location[SIZE], int id, int nr_parents,
-                                 char family[][SIZE]);
+                                 char parents[][SIZE], int nr_descendants,
+                                 char descendants[][SIZE]);
 void show_animals(list_animals *data);
 int verify_list_animals(list_animals *data);
 int verify_list_areas(list_areas *data);
@@ -72,6 +75,9 @@ list_animals *delete_animal_data(list_animals *data, char *key);
 void search_animals_data(list_animals *data, char *key, int filter);
 void search_animals(int filter);
 void menu_animals(void);
+void insert_descendant_data(list_animals *data, int nr_parents,
+                            char parents[][SIZE], char descendant[SIZE]);
+int generate_animal_id(list_animals *data, char species[SIZE], int id);
 int main(void);
 
 // Iniciar os dados das listas
@@ -233,7 +239,8 @@ void load_animals_data() {
                            load.weight) == 1) {
           start_animals = insert_animal_data(
               start_animals, load.species, load.name, load.weight,
-              load.location, load.id, load.nr_parents, load.family);
+              load.location, load.id, load.nr_parents, load.parents,
+              load.nr_descendants, load.descendants);
           printf("\n\t%s carregado com sucesso!\n", load.name);
         } else {
           printf("\n\t%s excede a capacidade total da area, a ignorar\n",
@@ -604,7 +611,7 @@ void load_animals(void) {
                              load.weight) == 1) {
             start_animals =
                 insert_animal_data(start_animals, load.species, load.name,
-                                   load.weight, load.location, 0, 0, 0);
+                                   load.weight, load.location, 0, 0, 0, 0, 0);
             printf("\n\t%s carregado com sucesso!\n", load.name);
           } else {
             printf("\n\t%s excede a capacidade total da area, a ignorar\n",
@@ -669,13 +676,13 @@ void born_animal(list_animals *data) {
   do {
     printf("\n\tVai inserir 1 ou 2 projenitores : ");
     scanf("%d", &load.nr_parents);
-  } while (load.nr_parents < 0 && load.nr_parents > 3);
+  } while (load.nr_parents != 1 && load.nr_parents != 2);
 
   printf("\n\tDigite o id do projenitor : ");
-  scanf(" %49[^\n]", load.family[0]);
-  if (check_if_animal_exists(start_animals, load.family[0]) == 0) {
+  scanf(" %49[^\n]", load.parents[0]);
+  if (check_if_animal_exists(start_animals, load.parents[0]) == 0) {
     printf("\n\tNao existe nenhum projenitor com o id %s, a terminar!\n",
-           load.family[0]);
+           load.parents[0]);
     PressEnterToContinue();
     return;
   } else {
@@ -684,7 +691,7 @@ void born_animal(list_animals *data) {
       sprintf(id, "%04d", data->id);
       strcat(specie_id, id);
 
-      if (strcmp(load.family[0], specie_id) == 0) {
+      if (strcmp(load.parents[0], specie_id) == 0) {
         strncpy(load.species, data->species, strlen(data->species) + 1);
         load.weight = data->weight * 0.20;
         strncpy(load.location, data->location, strlen(data->location) + 1);
@@ -694,10 +701,10 @@ void born_animal(list_animals *data) {
   }
   if (load.nr_parents == 2) {
     printf("\n\tDigite o id do projenitor 2 : ");
-    scanf(" %49[^\n]", load.family[1]);
-    if (check_if_animal_exists(start_animals, load.family[1]) == 0) {
+    scanf(" %49[^\n]", load.parents[1]);
+    if (check_if_animal_exists(start_animals, load.parents[1]) == 0) {
       printf("\n\tNao existe nenhum projenitor com o id %s, a terminar!\n",
-             load.family[1]);
+             load.parents[1]);
       PressEnterToContinue();
       return;
     } else {
@@ -709,7 +716,7 @@ void born_animal(list_animals *data) {
         sprintf(id, "%04d", data->id);
         strcat(specie_id, id);
 
-        if (strcmp(load.family[1], specie_id) == 0) {
+        if (strcmp(load.parents[1], specie_id) == 0) {
           // Certificar que os projenitores são da mesma espécie
           if (strcmp(load.species, aux->species) == 0) {
             // Certificar que os projenitores estão na mesma localização
@@ -736,27 +743,73 @@ void born_animal(list_animals *data) {
   // Se não exceder o total, iserir o animal
   if (check_capacity(start_areas, start_animals, load.location, load.weight) ==
       1) {
-    start_animals =
-        insert_animal_data(start_animals, load.species, load.name, load.weight,
-                           load.location, 0, load.nr_parents, load.family);
+    // Inserir animal
+    start_animals = insert_animal_data(start_animals, load.species, load.name,
+                                       load.weight, load.location, 0,
+                                       load.nr_parents, load.parents, 0, 0);
+
+    char descendant_id[SIZE + 5], id[5];
+    strcpy(descendant_id, load.species);
+    sprintf(id, "%04d", generate_animal_id(start_animals, load.species, 0));
+    strcat(descendant_id, id);
+    // Inserir filho no/s projetinor/s
+    insert_descendant_data(start_animals, load.nr_parents, load.parents,
+                           descendant_id);
+
     printf("\n\t%s registado com sucesso!\n", load.name);
   } else {
     printf("\n\t%s excede a capacidade total da area, a ignorar\n", load.name);
   }
   printf("\n");
   PressEnterToContinue();
-
   return;
+}
+
+void insert_descendant_data(list_animals *data, int nr_parents,
+                            char parents[][SIZE], char descendant[SIZE]) {
+
+  char specie_id[SIZE + 5], id[5];
+  int x;
+
+  for (; data != NULL; data = data->prox) {
+    strcpy(specie_id, data->species);
+    sprintf(id, "%04d", data->id);
+    strcat(specie_id, id);
+    for (x = 0; x < nr_parents; x++) {
+      if (strcmp(parents[x], specie_id) == 0) {
+        strncpy(data->descendants[data->nr_descendants++], descendant,
+                strlen(descendant) + 1);
+      }
+    }
+  }
+  return;
+}
+
+int generate_animal_id(list_animals *data, char species[SIZE], int id) {
+
+  int id_max = 0;
+
+  if (id == 0) { // é um novo animal
+    for (; data != NULL; data = data->prox) {
+      // Se encontrar, comparar o id
+      if (strcmp(species, data->species) == 0) {
+        if (data->id > id_max)
+          id_max = data->id;
+      }
+    }
+    id = id_max;
+  }
+  return id;
 }
 
 // Inserir dados recebidos
 list_animals *insert_animal_data(list_animals *data, char species[SIZE],
                                  char name[SIZE], float weight,
                                  char location[SIZE], int id, int nr_parents,
-                                 char family[][SIZE]) {
+                                 char parents[][SIZE], int nr_descendants,
+                                 char descendants[][SIZE]) {
   int x;
   list_animals *start_animals;
-  //------------------------------------------------------------------------
   list_animals *aux = data;
   //------------------------------------------------------------------------
   // Alocar memória para a posição atual
@@ -769,11 +822,19 @@ list_animals *insert_animal_data(list_animals *data, char species[SIZE],
   start_animals->id = id;
   start_animals->nr_parents = nr_parents;
   for (x = 0; x < nr_parents; x++) {
-    strncpy(start_animals->family[x], family[x], strlen(family[x]) + 1);
+    strncpy(start_animals->parents[x], parents[x], strlen(parents[x]) + 1);
+  }
+  start_animals->nr_descendants = nr_descendants;
+  for (x = 0; x < nr_descendants; x++) {
+    strncpy(start_animals->descendants[x], descendants[x],
+            strlen(descendants[x]) + 1);
   }
 
-  //-----------------------------------------------------------------------------
-  //
+  // start_animals->id =
+  //     generate_animal_id(start_animals, start_animals->species, id);
+  // printf("%d", start_animals->id);
+  // PressEnterToContinue();
+
   // Procurar por espécie
   // Percorrendo todas as posições
   if (start_animals->id == 0) { // is a new animal
@@ -788,10 +849,7 @@ list_animals *insert_animal_data(list_animals *data, char species[SIZE],
     start_animals->id = id_max + 1;
   }
 
-  // sprintf(id, "%04d", start_animals->id);
-  // strcat(start_animals->species, id);
-
-  //-----------------------------------------------------------------------------
+  // //-----------------------------------------------------------------------------
   // Se os dados forem inseridos no inicio do programa aponta para a
   // proxima posição da lista
   // Caso contrário aponta para a lista ja existente
@@ -819,7 +877,10 @@ void show_animals(list_animals *data) {
       printf("\n\tLocalizacao = %s\n", data->location);
       printf("\n\tPeso = %.2f\n", data->weight);
       for (x = 0; x < data->nr_parents; x++) {
-        printf("\n\tProjenitor %d = %s\n", x + 1, data->family[x]);
+        printf("\n\tProjenitor %d = %s\n", x + 1, data->parents[x]);
+      }
+      for (x = 0; x < data->nr_descendants; x++) {
+        printf("\n\tDescendente %d = %s\n", x + 1, data->descendants[x]);
       }
       printf("\n\t-----------------\n");
     }
@@ -867,7 +928,34 @@ void delete_animal(void) {
   }
 }
 
-//-----------------------------------------------------------------------
+void delete_family_relationships(list_animals *data, char key[SIZE]) {
+  int x, i;
+
+  for (; data != NULL; data = data->prox) {
+    // Apagar de projenitores
+    for (x = 0; x < data->nr_parents; x++) {
+      if (strcmp(key, data->parents[x]) == 0) {
+        // If delete position is invalid
+        for (i = x - 1; i < data->nr_parents - 1; i++) {
+          // Copy next element value to current element
+          strcpy(data->parents[i], data->parents[i + 1]);
+        }
+        data->nr_parents--;
+      }
+    }
+    // Apagar de descendentes
+    for (x = 0; x < data->nr_descendants; x++) {
+      if (strcmp(key, data->descendants[x]) == 0) {
+        // If delete position is invalid
+        for (i = x - 1; i < data->nr_descendants - 1; i++) {
+          // Copy next element value to current element
+          strcpy(data->descendants[i], data->descendants[i + 1]);
+        }
+        data->nr_descendants--;
+      }
+    }
+  }
+}
 
 // Função que apaga o animal definido
 list_animals *delete_animal_data(list_animals *data, char *key) {
@@ -910,6 +998,8 @@ list_animals *delete_animal_data(list_animals *data, char *key) {
   }
   // Se encontrou a procura
   if (find == 1) {
+    // Apagar relações familiares
+    delete_family_relationships(start_animals, key);
     printf("\n\tEliminado!\n\n");
     PressEnterToContinue();
   } else {
