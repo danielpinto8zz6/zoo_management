@@ -33,29 +33,34 @@ typedef struct areas {
   struct areas *prox;
 } list_areas;
 
+// dynamic arrays of areas
+typedef struct dynamic_array {
+  list_areas *area;
+  int size;
+} d_areas;
+
 // Definir funções previamente para evitar erros
 void header(void);
 void clearScreen(void);
 void clear_newlines(void);
 void PressEnterToContinue(void);
-int check_capacity(list_areas *areas_data, list_animals *animals_data,
+int check_capacity(d_areas *areas_data, list_animals *animals_data,
                    char *identifier, float weight);
 void transfer_animal_data(list_animals *data, char *key, char *area);
 void transfer_animal(list_animals *data);
 void load_animals_data(void);
 void save_animals_data(list_animals *data);
 void save_list_into(list_animals *data, FILE *file);
-void show_areas(list_areas *data);
-void save_areas_data(list_areas *data);
+void show_areas(d_areas *data);
+void save_areas_data(d_areas *data);
 void load_areas_data(void);
-list_areas *insert_area_data(list_areas *data, char identifier[SIZE],
-                             float capacity, int nr_adjacent_areas,
-                             char adjacent_areas[][SIZE]);
+d_areas *insert_area_data(d_areas *data, char identifier[SIZE], float capacity,
+                          int nr_adjacent_areas, char adjacent_areas[][SIZE]);
 void delete_area(list_animals *animals_data);
-list_areas *delete_area_data(list_areas *data, char *key);
+d_areas *delete_area_data(d_areas *data, char *key);
 void create_area(void);
 void menu_areas(void);
-int check_if_area_exists(list_areas *data, char *location);
+int check_if_area_exists(d_areas *data, char *location);
 void load_animals(void);
 _Bool check_empty(FILE *file);
 int check_if_animal_exists(list_animals *data, char *animal);
@@ -67,7 +72,7 @@ list_animals *insert_animal_data(list_animals *data, char species[SIZE],
                                  char descendants[][SIZE]);
 void show_animals(list_animals *data);
 int verify_list_animals(list_animals *data);
-int verify_list_areas(list_areas *data);
+int verify_list_areas(d_areas *data);
 void delete_animal(void);
 
 list_animals *delete_animal_data(list_animals *data, char *key);
@@ -82,7 +87,8 @@ int main(void);
 
 // Iniciar os dados das listas
 list_animals *start_animals = NULL;
-list_areas *start_areas = NULL;
+// list_areas *start_areas = NULL;
+d_areas *start_areas = NULL;
 
 // Cabeçalho do programa
 void header() {
@@ -120,12 +126,12 @@ void PressEnterToContinue(void) {
     ;
 }
 
-int check_capacity(list_areas *areas_data, list_animals *animals_data,
+int check_capacity(d_areas *areas_data, list_animals *animals_data,
                    char *identifier, float weight) {
   float area_capacity, total_animals_weight;
-  for (; areas_data != NULL; areas_data = areas_data->prox) {
-    if (strcmp(identifier, areas_data->identifier) == 0) {
-      area_capacity = areas_data->capacity;
+  for (int i = 0; i < areas_data->size; i++) {
+    if (strcmp(identifier, areas_data->area[i].identifier) == 0) {
+      area_capacity = areas_data->area[i].capacity;
     }
   }
   for (; animals_data != NULL; animals_data = animals_data->prox) {
@@ -289,19 +295,20 @@ void save_list_into(list_animals *data, FILE *file) {
 }
 
 // // Função para ver áreas (não usada no programa, apenas para testes)
-void show_areas(list_areas *data) {
+void show_areas(d_areas *data) {
   int x;
   // Se não estiver vazio, mostra os dados
   if (!verify_list_areas(start_areas)) {
     clearScreen();
     header();
-    for (; data != NULL; data = data->prox) {
-      printf("\n\tIdentificador = %s\n", data->identifier);
-      printf("\n\tCapacidade = %f\n", data->capacity);
-      printf("\n\tNumero de areas adjacentes = %d\n", data->nr_adjacent_areas);
+    for (int i = 0; i < data->size; i++) {
+      printf("\n\tIdentificador = %s\n", data->area[i].identifier);
+      printf("\n\tCapacidade = %f\n", data->area[i].capacity);
+      printf("\n\tNumero de areas adjacentes = %d\n",
+             data->area[i].nr_adjacent_areas);
       printf("\n\tAreas adjacentes = ");
-      for (x = 0; x < data->nr_adjacent_areas; x++) {
-        printf("%s ", data->adjacent_areas[x]);
+      for (x = 0; x < data->area[i].nr_adjacent_areas; x++) {
+        printf("%s ", data->area[i].adjacent_areas[x]);
       }
       printf("\n\n\t-----------------\n");
     }
@@ -311,7 +318,7 @@ void show_areas(list_areas *data) {
   return;
 }
 
-void save_areas_data(list_areas *data) {
+void save_areas_data(d_areas *data) {
 
   FILE *file;
   file = fopen("areas.txt", "w");
@@ -325,11 +332,11 @@ void save_areas_data(list_areas *data) {
   } else {
     // Antes de guardar os dados vamos limpar o ficheiro para os mesmo dados nao
     // serem inseridos duas vezes
-    for (; data != NULL; data = data->prox) {
-      fprintf(file, "%s %.2f %d ", data->identifier, data->capacity,
-              data->nr_adjacent_areas);
-      for (int i = 0; i < data->nr_adjacent_areas; i++) {
-        fprintf(file, "%s ", data->adjacent_areas[i]);
+    for (int i = 0; i < data->size; i++) {
+      fprintf(file, "%s %.2f %d ", data->area[i].identifier,
+              data->area[i].capacity, data->area[i].nr_adjacent_areas);
+      for (int i = 0; i < data->area[i].nr_adjacent_areas; i++) {
+        fprintf(file, "%s ", data->area[i].adjacent_areas[i]);
       }
       fprintf(file, "\n");
     }
@@ -366,32 +373,34 @@ void load_areas_data(void) {
 }
 
 // Função que insere os dados recebidos na estrutura de dados
-list_areas *insert_area_data(list_areas *data, char identifier[SIZE],
-                             float capacity, int nr_adjacent_areas,
-                             char adjacent_areas[][SIZE]) {
+d_areas *insert_area_data(d_areas *data, char identifier[SIZE], float capacity,
+                          int nr_adjacent_areas, char adjacent_areas[][SIZE]) {
   int x;
-  list_areas *start_areas;
+  if (data == NULL) {
+    // allocar memoria para o array
+    data = (d_areas *)malloc(sizeof(d_areas));
+    data->area = malloc(sizeof(list_areas));
+    data->size = 0;
+  }
+
+  data->size++;
   // Alocar memória para a posição atual
-  start_areas = (list_areas *)malloc(sizeof(list_areas));
+  if (data->size > 1) {
+    data->area = realloc(data->area, sizeof(list_areas) * data->size);
+  }
+  int index = data->size - 1;
+
+  // start_areas = (list_areas *)malloc(sizeof(list_areas));
   // Copiar os dados recebidos para a estrutura
-  strncpy(start_areas->identifier, identifier, strlen(identifier) + 1);
-  start_areas->capacity = capacity;
-  start_areas->nr_adjacent_areas = nr_adjacent_areas;
+  strncpy(data->area[index].identifier, identifier, strlen(identifier) + 1);
+  data->area[index].capacity = capacity;
+  data->area[index].nr_adjacent_areas = nr_adjacent_areas;
   for (x = 0; x < nr_adjacent_areas; x++) {
-    strncpy(start_areas->adjacent_areas[x], adjacent_areas[x],
+    strncpy(data->area[index].adjacent_areas[x], adjacent_areas[x],
             strlen(adjacent_areas[x]) + 1);
   }
-  // Se os dados forem inseridos no inicio do programa aponta para a proxima
-  // posição da lista
-  // Caso contrário aponta para a lista já existente
-  if (data == NULL) {
-    // Aponta para a próxima posição da lista
-    start_areas->prox = NULL;
-  } else {
-    // O próximo valor aponta para a lista já existente
-    start_areas->prox = data;
-  }
-  return start_areas;
+
+  return data;
 }
 
 // Função para definir a area a apagar
@@ -419,7 +428,26 @@ void delete_area(list_animals *animals_data) {
 }
 
 // Função que apaga os dados de determinada area
-list_areas *delete_area_data(list_areas *data, char *key) {
+d_areas *delete_area_data(d_areas *data, char *key) {
+
+  for (int i = 0; i < data->size; i++) {
+    if (strcmp(key, data->area[i].identifier) == 0) {
+      for (int j = i; j < data->size - 1; j++) {
+        data->area[i] = data->area[i + 1];
+      }
+      data->size--;
+      data->area = realloc(data->area, sizeof(list_areas) * data->size);
+      printf("\n\tEliminado!\n\n");
+      PressEnterToContinue();
+      return data;
+    }
+  }
+
+  printf("\n\tNenhum resultado encontrado!\n\n");
+  PressEnterToContinue();
+  return data;
+
+  /*
   int find = 0, cont = 0;
   list_areas *join, *aux, *fresh = data;
 
@@ -470,6 +498,8 @@ list_areas *delete_area_data(list_areas *data, char *key) {
   }
 
   return data;
+
+  */
 }
 
 // Função para criar uma nova área
@@ -556,9 +586,9 @@ menu:
   goto menu;
 }
 
-int check_if_area_exists(list_areas *data, char *location) {
-  for (; data != NULL; data = data->prox) {
-    if (strcmp(location, data->identifier) == 0) {
+int check_if_area_exists(d_areas *data, char *location) {
+  for (int i = 0; i < data->size; i++) {
+    if (strcmp(location, data->area[i].identifier) == 0) {
       return 1;
     }
   }
@@ -903,7 +933,7 @@ int verify_list_animals(list_animals *data) {
 }
 
 // Função que verifica se a lista areas está vazia
-int verify_list_areas(list_areas *data) {
+int verify_list_areas(d_areas *data) {
   // Se a lista estiver vazia
   if (data == NULL) {
     clearScreen();
@@ -1080,7 +1110,7 @@ void search_animals(int filter) {
     // Ler a chave a procurar
     printf("\n\tDigite a procura : ");
     scanf(" %49[^\n]", key);
-    // chamando a função que ir�� procurar a chave
+    // chamando a função que ir?? procurar a chave
     search_animals_data(start_animals, key, filter);
   }
 }
