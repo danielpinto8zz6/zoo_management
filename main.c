@@ -30,12 +30,11 @@ typedef struct areas {
   char adjacent_areas[3][SIZE];
   int nr_adjacent_areas;
   float capacity;
-  struct areas *prox;
-} list_areas;
+} t_areas;
 
 // dynamic arrays of areas
 typedef struct dynamic_array {
-  list_areas *area;
+  t_areas *area;
   int size;
 } d_areas;
 
@@ -87,7 +86,7 @@ int main(void);
 
 // Iniciar os dados das listas
 list_animals *start_animals = NULL;
-// list_areas *start_areas = NULL;
+// t_areas *start_areas = NULL;
 d_areas *start_areas = NULL;
 
 // Cabeçalho do programa
@@ -345,7 +344,7 @@ void save_areas_data(d_areas *data) {
 }
 
 void load_areas_data(void) {
-  list_areas load;
+  t_areas load;
 
   FILE *file;
   file = fopen("areas.txt", "r");
@@ -379,18 +378,18 @@ d_areas *insert_area_data(d_areas *data, char identifier[SIZE], float capacity,
   if (data == NULL) {
     // allocar memoria para o array
     data = (d_areas *)malloc(sizeof(d_areas));
-    data->area = malloc(sizeof(list_areas));
+    data->area = malloc(sizeof(t_areas));
     data->size = 0;
   }
 
   data->size++;
   // Alocar memória para a posição atual
   if (data->size > 1) {
-    data->area = realloc(data->area, sizeof(list_areas) * data->size);
+    data->area = realloc(data->area, sizeof(t_areas) * data->size);
   }
   int index = data->size - 1;
 
-  // start_areas = (list_areas *)malloc(sizeof(list_areas));
+  // start_areas = (t_areas *)malloc(sizeof(t_areas));
   // Copiar os dados recebidos para a estrutura
   strncpy(data->area[index].identifier, identifier, strlen(identifier) + 1);
   data->area[index].capacity = capacity;
@@ -433,10 +432,10 @@ d_areas *delete_area_data(d_areas *data, char *key) {
   for (int i = 0; i < data->size; i++) {
     if (strcmp(key, data->area[i].identifier) == 0) {
       for (int j = i; j < data->size - 1; j++) {
-        data->area[i] = data->area[i + 1];
+        data->area[j] = data->area[j + 1];
       }
       data->size--;
-      data->area = realloc(data->area, sizeof(list_areas) * data->size);
+      data->area = realloc(data->area, sizeof(t_areas) * data->size);
       printf("\n\tEliminado!\n\n");
       PressEnterToContinue();
       return data;
@@ -446,67 +445,13 @@ d_areas *delete_area_data(d_areas *data, char *key) {
   printf("\n\tNenhum resultado encontrado!\n\n");
   PressEnterToContinue();
   return data;
-
-  /*
-  int find = 0, cont = 0;
-  list_areas *join, *aux, *fresh = data;
-
-  // Correr a lista e verificar se encontrou a string procurada, se sim,
-  // aumentar o contador e seta a variável de procura
-  for (; fresh != NULL; fresh = fresh->prox) {
-    if (strcmp(key, fresh->identifier) == 0) {
-      find = 1;
-      cont++;
-    }
-  }
-
-  // Se encontrou a procura
-  if (find == 1) {
-    int ind = 0;
-    // Percorrer a lista
-    for (ind = 0; ind < cont; ind++) {
-      // Se encontrou na primeira casa apaga a primeira casa
-      if (strcmp(key, data->identifier) == 0) {
-        aux = data;
-        data = data->prox;
-        free(aux);
-      }
-      // Senão, procura até encontrar
-      else {
-        aux = data;
-        // Posiciona na frente para apagar
-        while (strcmp(key, aux->identifier) != 0) {
-          aux = aux->prox;
-        }
-
-        join = data;
-        // Enquanto o auxiliar juntou for diferente do posicionado para
-        // apagar
-        while (join->prox != aux) {
-          join = join->prox;
-        }
-        // Aponta para o próximo valor válido
-        join->prox = aux->prox;
-        free(aux);
-      }
-    }
-    printf("\n\tEliminado!\n\n");
-    PressEnterToContinue();
-  } else {
-    printf("\n\tNenhum resultado encontrado!\n\n");
-    PressEnterToContinue();
-  }
-
-  return data;
-
-  */
 }
 
 // Função para criar uma nova área
 void create_area(void) {
   int x;
 
-  list_areas load;
+  t_areas load;
 
   clearScreen();
   header();
