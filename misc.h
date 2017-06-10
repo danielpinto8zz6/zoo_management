@@ -27,6 +27,7 @@
 extern "C" {
 #endif
 
+    bool check_empty(FILE *file);
     void clear_newlines(void);
     void clearScreen(void);
     void header(void);

@@ -40,6 +40,7 @@
 int main() {
 
     node_animals *list_animals = NULL;
+    //list_animals = malloc(sizeof (node_animals));
 
     d_areas *list_areas = NULL;
     list_areas = malloc(sizeof (d_areas));

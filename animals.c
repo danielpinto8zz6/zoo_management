@@ -153,7 +153,7 @@ node_animals *insert_animal_data(node_animals *list_animals, char species[SIZE],
 
 node_animals *born_animal(node_animals *list_animals) {
 
-    node_animals *data = list_animals, *aux = list_animals;
+    node_animals *data= list_animals, *aux = list_animals;
     node_animals load;
 
     char specie_id[SIZE + 5];
@@ -376,6 +376,11 @@ void insert_descendant_data(node_animals *list_animals, int nr_parents,
 
 node_animals *load_animals_data(node_animals *list_animals, d_areas *list_areas) {
 
+	if (list_areas == NULL){
+		printf("\n\tNao foi possivel carregar dados dos animais do zoo!\n\n");
+        PressEnterToContinue();
+   		return list_animals;
+	}
     node_animals load;
 
     FILE *file;
@@ -385,7 +390,7 @@ node_animals *load_animals_data(node_animals *list_animals, d_areas *list_areas)
     header();
 
     // Verificar se é possivel abrir o ficheiro
-    if (file == NULL) {
+    if (file == NULL || check_empty(file) == true) {
         printf("\n\tNao foi possivel carregar dados dos animais do zoo!\n\n");
         PressEnterToContinue();
         return list_animals;
@@ -394,7 +399,7 @@ node_animals *load_animals_data(node_animals *list_animals, d_areas *list_areas)
         // Os dados são armazenados directamente na variável espécie
         while (fread(&load, sizeof (node_animals), 1, file)) {
             if (check_if_area_exists(list_areas, load.location) == 0) {
-                printf("\n\t%s nao tem uma area existente! A ignorar...\n", load.name);
+                printf("\n\t%s nao tem uma area valida! A ignorar...\n", load.name);
             } else {
                 // Se não exceder o total, iserir o animal
                 if (check_capacity(list_areas, list_animals, load.location,
@@ -447,21 +452,30 @@ node_animals *load_animals(node_animals *list_animals, d_areas *list_areas) {
         PressEnterToContinue();
         return list_animals;
     } else {
-        while (fscanf(file, "%s %s %f %s", load.species, load.name, &load.weight,
-                load.location) == 4) {
-            if (check_if_area_exists(list_areas, load.location) == 0) {
-                printf("\n\t%s nao tem uma area valida! A ignorar...\n", load.name);
-            } else {
-                // Se não exceder o total, iserir o animal
-                if (check_capacity(list_areas, list_animals, load.location,
-                        load.weight) == 1) {
-                    list_animals =
-                            insert_animal_data(list_animals, load.species, load.name,
-                            load.weight, load.location, 0, 0, 0, 0, 0);
-                    printf("\n\t%s carregado com sucesso!\n", load.name);
+
+        if (check_empty(file) == true) {
+            clearScreen();
+            header();
+            printf("\n\tO ficheiro esta vazio, nada a carregar!\n\n");
+            PressEnterToContinue();
+            return list_animals;
+        } else {
+            while (fscanf(file, "%s %s %f %s", load.species, load.name, &load.weight,
+                    load.location) == 4) {
+                if (check_if_area_exists(list_areas, load.location) == 0) {
+                    printf("\n\t%s nao tem uma area valida! A ignorar...\n", load.name);
                 } else {
-                    printf("\n\t%s excede a capacidade total da area, a ignorar\n",
-                            load.name);
+                    // Se não exceder o total, iserir o animal
+                    if (check_capacity(list_areas, list_animals, load.location,
+                            load.weight) == 1) {
+                        list_animals =
+                                insert_animal_data(list_animals, load.species, load.name,
+                                load.weight, load.location, 0, 0, 0, 0, 0);
+                        printf("\n\t%s carregado com sucesso!\n", load.name);
+                    } else {
+                        printf("\n\t%s excede a capacidade total da area, a ignorar\n",
+                                load.name);
+                    }
                 }
             }
         }

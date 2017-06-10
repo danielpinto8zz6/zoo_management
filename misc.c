@@ -29,6 +29,21 @@
  * 
  */
 
+
+// Verificar se o ficheiro está vazio
+
+bool check_empty(FILE *file) {
+    long savedOffset = ftell(file);
+    fseek(file, 0, SEEK_END);
+
+    if (ftell(file) == 0) {
+        return true;
+    }
+
+    fseek(file, savedOffset, SEEK_SET);
+    return false;
+}
+
 // Função para limpar o buffer
 
 void clear_newlines(void) {
