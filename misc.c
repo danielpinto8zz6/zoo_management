@@ -29,7 +29,6 @@
  * 
  */
 
-
 // Verificar se o ficheiro está vazio
 
 bool check_empty(FILE *file) {

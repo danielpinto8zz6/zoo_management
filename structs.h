@@ -51,7 +51,7 @@ extern "C" {
         float capacity;
     } t_areas;
 
-    // dynamic arrays of areas
+    // Estrutura que guarda o numero de areas inseridas
 
     typedef struct dynamic_array {
         t_areas *area;

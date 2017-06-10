@@ -44,6 +44,10 @@ int main() {
 
     d_areas *list_areas = NULL;
     list_areas = malloc(sizeof (d_areas));
+    if (list_areas == NULL) {
+        printf("\n\tERRO a realocar memoria\n");
+        exit(0);
+    }
     list_areas->area = NULL;
 
     static bool _isExecutedFirst = false;
